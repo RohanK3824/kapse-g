@@ -1,0 +1,35 @@
+{
+  "name": "kapseg",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "server": "node server.js",
+    "client": "vite",
+    "build": "vite build",
+    "dev": "concurrently \"node server.js\" \"vite\"",
+    "seed:mysql": "node seed_mysql.js",
+    "db:check": "node manage_db.js check",
+    "db:backup": "node manage_db.js backup",
+    "db:optimize": "node manage_db.js optimize",
+    "seed": "node seed.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@google/genai": "^3.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "concurrently": "^10.0.7",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.10",
+    "exceljs": "^4.4.0",
+    "express": "^5.3.0",
+    "mysql2": "^3.24.6",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "vite": "^8.3.8"
+  }
+}
