@@ -50,57 +50,6 @@ export default function DashboardView({
         </div>
       </div>
 
-      {/* Stat Cards Grid */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon-wrapper" style={{ background: '#f0fdf4', color: '#16a34a' }}>
-            <i className="fa-solid fa-users"></i>
-          </div>
-          <div className="stat-info">
-            <span className="stat-label">TOTAL CUSTOMERS</span>
-            <div className="stat-number">{stats.totalCustomers || customers.length}</div>
-            <span className="stat-sub" style={{ color: '#16a34a' }}>
-              <i className="fa-solid fa-database"></i> Stored in MySQL
-            </span>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon-wrapper" style={{ background: '#eff6ff', color: '#2563eb' }}>
-            <i className="fa-solid fa-calendar-day"></i>
-          </div>
-          <div className="stat-info">
-            <span className="stat-label">TODAY'S REGISTRATIONS</span>
-            <div className="stat-number">{stats.todayCustomers || 0}</div>
-            <span className="stat-sub" style={{ color: '#2563eb' }}>
-              {stats.todayDate || new Date().toISOString().split('T')[0]}
-            </span>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon-wrapper" style={{ background: '#faf5ff', color: '#9333ea' }}>
-            <i className="fa-solid fa-book-bookmark"></i>
-          </div>
-          <div className="stat-info">
-            <span className="stat-label">ACTIVE BILL BOOKS</span>
-            <div className="stat-number">{stats.totalBillBooks || 0}</div>
-            <span className="stat-sub">Unique registered books</span>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon-wrapper" style={{ background: '#ecfdf5', color: '#059669' }}>
-            <i className="fa-solid fa-map-location-dot"></i>
-          </div>
-          <div className="stat-info">
-            <span className="stat-label">TOWNS &amp; PLACES</span>
-            <div className="stat-number">{stats.totalPlaces || 0}</div>
-            <span className="stat-sub">Customer areas</span>
-          </div>
-        </div>
-      </div>
-
       {/* Full-Width Recently Added Customers Card */}
       <div className="card full-width-card" style={{ width: '100%', marginBottom: '2rem' }}>
         <div className="card-header">
