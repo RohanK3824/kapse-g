@@ -4,6 +4,8 @@ const fs = require('fs');
 const ExcelJS = require('exceljs');
 require('dotenv').config();
 
+const DB_SSL = process.env.DB_SSL === 'true' || process.env.DB_SSL === '1';
+
 const DB_CONFIG = {
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '3306', 10),
@@ -16,8 +18,28 @@ const DB_CONFIG = {
   enableKeepAlive: true,
   keepAliveInitialDelay: 10000,
   charset: 'utf8mb4',
-  dateStrings: true
+  dateStrings: true,
+  ...(DB_SSL || (process.env.DB_HOST && process.env.DB_HOST !== 'localhost' && process.env.DB_HOST !== '127.0.0.1') ? {
+    ssl: {
+      rejectUnauthorized: false
+    }
+  } : {})
 };
+
+// Support DATABASE_URL connection string if provided (e.g. Render / Cloud DB)
+if (process.env.DATABASE_URL) {
+  try {
+    const parsed = new URL(process.env.DATABASE_URL);
+    DB_CONFIG.host = parsed.hostname;
+    DB_CONFIG.port = parseInt(parsed.port || '3306', 10);
+    DB_CONFIG.user = decodeURIComponent(parsed.username);
+    DB_CONFIG.password = decodeURIComponent(parsed.password);
+    DB_CONFIG.database = parsed.pathname.replace(/^\//, '');
+    DB_CONFIG.ssl = { rejectUnauthorized: false };
+  } catch (urlErr) {
+    console.warn('[MySQL] Failed to parse DATABASE_URL, using individual env vars:', urlErr.message);
+  }
+}
 
 let pool = null;
 let isConnected = false;
@@ -28,19 +50,23 @@ let lastConnectionError = null;
  */
 async function initDatabase() {
   try {
-    // Step 1: Connect to MySQL server without database
-    const connection = await mysql.createConnection({
-      host: DB_CONFIG.host,
-      port: DB_CONFIG.port,
-      user: DB_CONFIG.user,
-      password: DB_CONFIG.password
-    });
-
-    // Step 2: Create database if it doesn't exist
-    await connection.query(
-      `CREATE DATABASE IF NOT EXISTS \`${DB_CONFIG.database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`
-    );
-    await connection.end();
+    // Only attempt CREATE DATABASE if host is localhost
+    if (DB_CONFIG.host === 'localhost' || DB_CONFIG.host === '127.0.0.1') {
+      try {
+        const connection = await mysql.createConnection({
+          host: DB_CONFIG.host,
+          port: DB_CONFIG.port,
+          user: DB_CONFIG.user,
+          password: DB_CONFIG.password
+        });
+        await connection.query(
+          `CREATE DATABASE IF NOT EXISTS \`${DB_CONFIG.database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`
+        );
+        await connection.end();
+      } catch (dbErr) {
+        console.warn('[MySQL] Notice: Database auto-create skipped or already exists:', dbErr.message);
+      }
+    }
 
     // Step 3: Create connection pool with database selected
     pool = mysql.createPool(DB_CONFIG);
