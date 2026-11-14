@@ -61,7 +61,7 @@ export default function ViewSlipModal({ customer, onClose, onEdit }) {
                 <span className="slip-value"><span className="page-tag-badge">Page {customer.pageNo}</span></span>
               </div>
 
-              {/* Bill & Payment (हिशोब व रक्कम) */}
+              {/* Bill & Payment */}
               <div className="slip-field full" style={{
                 backgroundColor: '#f8fafc',
                 border: '1.5px solid #cbd5e1',
@@ -79,15 +79,15 @@ export default function ViewSlipModal({ customer, onClose, onEdit }) {
                 }}>
                   <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0f2942', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <i className="fa-solid fa-receipt" style={{ color: '#0284c7' }}></i>
-                    <span>Bill &amp; Payment (हिशोब तपशील)</span>
+                    <span>Bill &amp; Payment Details</span>
                   </span>
                   {Number(customer.balanceDue || 0) > 0 ? (
                     <span style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '3px 9px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 700 }}>
-                      बाकी (Pending)
+                      Pending Due
                     </span>
                   ) : Number(customer.totalBill || 0) > 0 ? (
                     <span style={{ backgroundColor: '#dcfce7', color: '#15803d', padding: '3px 9px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 700 }}>
-                      ✓ पूर्ण जमा (Paid)
+                      ✓ Fully Paid
                     </span>
                   ) : (
                     <span style={{ backgroundColor: '#f1f5f9', color: '#64748b', padding: '3px 9px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600 }}>
@@ -98,21 +98,21 @@ export default function ViewSlipModal({ customer, onClose, onEdit }) {
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.65rem', textAlign: 'center' }}>
                   <div style={{ backgroundColor: '#ffffff', padding: '0.55rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                    <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>एकूण बिल</div>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Total Bill</div>
                     <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f2942', marginTop: '2px' }}>
                       ₹{Number(customer.totalBill || 0).toLocaleString('en-IN')}
                     </div>
                   </div>
 
                   <div style={{ backgroundColor: '#ffffff', padding: '0.55rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                    <div style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 600, textTransform: 'uppercase' }}>जमा रक्कम</div>
+                    <div style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 600, textTransform: 'uppercase' }}>Advance Paid</div>
                     <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#16a34a', marginTop: '2px' }}>
                       ₹{Number(customer.advancePaid || 0).toLocaleString('en-IN')}
                     </div>
                   </div>
 
                   <div style={{ backgroundColor: '#ffffff', padding: '0.55rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                    <div style={{ fontSize: '0.72rem', color: '#dc2626', fontWeight: 600, textTransform: 'uppercase' }}>बाकी रक्कम</div>
+                    <div style={{ fontSize: '0.72rem', color: '#dc2626', fontWeight: 600, textTransform: 'uppercase' }}>Balance Due</div>
                     <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#dc2626', marginTop: '2px' }}>
                       ₹{Number(customer.balanceDue || 0).toLocaleString('en-IN')}
                     </div>

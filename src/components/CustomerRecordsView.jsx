@@ -180,7 +180,7 @@ export default function CustomerRecordsView({
                   <th className="sortable" onClick={() => handleSort('date')}>
                     Reg. Date <i className={getSortIcon('date')}></i>
                   </th>
-                  <th style={{ minWidth: '130px', textAlign: 'center' }}>Bill (बिल)</th>
+                  <th style={{ minWidth: '120px', textAlign: 'center' }}>Bill</th>
                   <th style={{ textAlign: 'center' }}>Actions</th>
                 </tr>
               </thead>
@@ -204,18 +204,18 @@ export default function CustomerRecordsView({
                     <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                       <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
                         <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0f172a' }}>
-                          एकूण: ₹{Number(c.totalBill || 0).toLocaleString('en-IN')}
+                          Total: ₹{Number(c.totalBill || 0).toLocaleString('en-IN')}
                         </div>
                         <div style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 600 }}>
-                          जमा: ₹{Number(c.advancePaid || 0).toLocaleString('en-IN')}
+                          Paid: ₹{Number(c.advancePaid || 0).toLocaleString('en-IN')}
                         </div>
                         {Number(c.balanceDue || 0) > 0 ? (
                           <span style={{ backgroundColor: '#fee2e2', color: '#dc2626', fontSize: '0.72rem', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                            बाकी: ₹{Number(c.balanceDue).toLocaleString('en-IN')}
+                            Due: ₹{Number(c.balanceDue).toLocaleString('en-IN')}
                           </span>
                         ) : Number(c.totalBill || 0) > 0 ? (
                           <span style={{ backgroundColor: '#dcfce7', color: '#16a34a', fontSize: '0.72rem', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                            ✓ पूर्ण जमा
+                            ✓ Paid
                           </span>
                         ) : (
                           <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>-</span>
@@ -238,7 +238,7 @@ export default function CustomerRecordsView({
                           }}
                         >
                           <i className="fa-solid fa-file-invoice"></i>
-                          <span>पावती पहा</span>
+                          <span>View Slip</span>
                         </button>
                       </div>
                     </td>

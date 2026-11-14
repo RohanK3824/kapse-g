@@ -217,7 +217,7 @@ export default function AddCustomerView({ onAddCustomer }) {
                 <small className="field-hint">Automatically defaults to today's date.</small>
               </div>
 
-              {/* 7. Billing & Payment Details (बिल व हिशोब) */}
+              {/* 7. Billing & Payment Details */}
               <div className="form-group full-width">
                 <div style={{
                   background: '#f8fafc',
@@ -231,16 +231,16 @@ export default function AddCustomerView({ onAddCustomer }) {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
                     <label className="form-label" style={{ margin: 0, fontWeight: 700, color: '#0f2942', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.95rem' }}>
                       <i className="fa-solid fa-calculator" style={{ color: '#0284c7' }}></i>
-                      <span>Billing &amp; Payment Details (बिल व हिशोब)</span>
+                      <span>Billing &amp; Payment Details</span>
                     </label>
                     {parseFloat(formData.totalBill || 0) > 0 && (
                       parseFloat(formData.balanceDue || 0) > 0 ? (
                         <span style={{ fontSize: '0.82rem', padding: '3px 10px', borderRadius: '12px', background: '#fee2e2', color: '#b91c1c', fontWeight: 700 }}>
-                          बाकी रक्कम: ₹{parseFloat(formData.balanceDue || 0).toLocaleString('en-IN')}
+                          Balance Due: ₹{parseFloat(formData.balanceDue || 0).toLocaleString('en-IN')}
                         </span>
                       ) : (
                         <span style={{ fontSize: '0.82rem', padding: '3px 10px', borderRadius: '12px', background: '#dcfce7', color: '#15803d', fontWeight: 700 }}>
-                          ✓ पूर्ण जमा (Paid)
+                          ✓ Fully Paid
                         </span>
                       )
                     )}
@@ -250,7 +250,7 @@ export default function AddCustomerView({ onAddCustomer }) {
                     {/* Total Bill */}
                     <div>
                       <label className="form-label" style={{ fontSize: '0.82rem', marginBottom: '4px', fontWeight: 600 }}>
-                        एकूण बिल (Total Bill ₹)
+                        Total Bill (₹)
                       </label>
                       <div className="input-group">
                         <span className="input-icon" style={{ fontWeight: 700, color: '#0f2942' }}>₹</span>
@@ -270,7 +270,7 @@ export default function AddCustomerView({ onAddCustomer }) {
                     {/* Advance Paid */}
                     <div>
                       <label className="form-label" style={{ fontSize: '0.82rem', marginBottom: '4px', fontWeight: 600, color: '#16a34a' }}>
-                        जमा रक्कम (Paid / Advance ₹)
+                        Advance / Paid (₹)
                       </label>
                       <div className="input-group">
                         <span className="input-icon" style={{ fontWeight: 700, color: '#16a34a' }}>₹</span>
@@ -290,7 +290,7 @@ export default function AddCustomerView({ onAddCustomer }) {
                     {/* Balance Due (Auto-calculated) */}
                     <div>
                       <label className="form-label" style={{ fontSize: '0.82rem', marginBottom: '4px', fontWeight: 600, color: '#dc2626' }}>
-                        बाकी रक्कम (Balance Due ₹)
+                        Balance Due (₹)
                       </label>
                       <div className="input-group">
                         <span className="input-icon" style={{ fontWeight: 700, color: '#dc2626' }}>₹</span>
