@@ -187,7 +187,7 @@ export default function CustomerRecordsView({
                 {currentSlice.map((c, index) => (
                   <tr key={c.id}>
                     <td style={{ textAlign: 'center' }}>
-                      <span className="sr-no-badge">#{startIndex + index + 1}</span>
+                      <span className="sr-no-badge">{startIndex + index + 1}</span>
                     </td>
                     <td>
                       <div className="cust-name-cell">
