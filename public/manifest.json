@@ -1,0 +1,25 @@
+{
+  "name": "Kapse - G 🔰 Tailor Shop",
+  "short_name": "Kapse - G 🔰",
+  "description": "Tailor Shop Customer, Measurements and Bill Book Management System",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0F2942",
+  "theme_color": "#0F2942",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
