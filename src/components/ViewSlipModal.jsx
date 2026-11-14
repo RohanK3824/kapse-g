@@ -1,21 +1,7 @@
-import React, { useState } from 'react';
-import { openWhatsAppSlip, buildWhatsAppSlipText } from '../utils/whatsappHelper';
+import React from 'react';
 
 export default function ViewSlipModal({ customer, onClose, onEdit }) {
-  const [copied, setCopied] = useState(false);
-
   if (!customer) return null;
-
-  const handleCopyText = async () => {
-    try {
-      const text = buildWhatsAppSlipText(customer);
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    } catch (e) {
-      console.error('Failed to copy text', e);
-    }
-  };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -36,52 +22,6 @@ export default function ViewSlipModal({ customer, onClose, onEdit }) {
         </div>
 
         <div className="modal-body">
-          {/* Digital WhatsApp Slip Banner */}
-          <div className="digital-slip-bar no-print" style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '0.6rem',
-            background: '#f0fdf4',
-            border: '1.5px solid #86efac',
-            borderRadius: '8px',
-            padding: '0.75rem 1rem',
-            marginBottom: '1rem'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <i className="fa-brands fa-whatsapp" style={{ fontSize: '1.6rem', color: '#16a34a' }}></i>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#14532d' }}>
-                  डिजिटल पावती (WhatsApp Digital Slip)
-                </div>
-                <div style={{ fontSize: '0.78rem', color: '#166534' }}>
-                  कागदी पावती न देता थेट ग्राहकाच्या व्हॉट्सॲपवर पाठवा
-                </div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <button
-                type="button"
-                className="btn btn-sm btn-outline"
-                onClick={handleCopyText}
-                title="Copy Bill Slip Text"
-                style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}
-              >
-                <i className={copied ? 'fa-solid fa-check' : 'fa-regular fa-copy'}></i> {copied ? 'Copied!' : 'Copy Text'}
-              </button>
-              <button
-                type="button"
-                className="btn btn-sm btn-whatsapp"
-                onClick={() => openWhatsAppSlip(customer)}
-                title="Send directly on Customer WhatsApp"
-                style={{ fontSize: '0.8rem', padding: '0.35rem 0.85rem' }}
-              >
-                <i className="fa-brands fa-whatsapp"></i> WhatsApp वर पाठवा
-              </button>
-            </div>
-          </div>
-
           <div className="tailor-receipt-slip">
             <div className="slip-header">
               <h2>✂️ KAPSE - G 🔰 TAILORS</h2>
@@ -229,14 +169,6 @@ export default function ViewSlipModal({ customer, onClose, onEdit }) {
         </div>
 
         <div className="modal-footer">
-          <button
-            type="button"
-            className="btn btn-whatsapp"
-            onClick={() => openWhatsAppSlip(customer)}
-            title="Send Digital Slip on WhatsApp"
-          >
-            <i className="fa-brands fa-whatsapp" style={{ fontSize: '1.15rem' }}></i> Send WhatsApp Slip
-          </button>
           <button className="btn btn-outline" onClick={() => window.print()}>
             <i className="fa-solid fa-print"></i> Print Slip
           </button>

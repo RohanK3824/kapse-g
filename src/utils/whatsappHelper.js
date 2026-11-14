@@ -1,6 +1,6 @@
 /**
- * Kapse - G 🔰 Tailors
- * WhatsApp Digital Receipt / Bill Slip Generator & Sender
+ * Kapse - G Tailors
+ * Clean & Professional WhatsApp Receipt Slip Generator
  */
 
 export function buildWhatsAppSlipText(customer) {
@@ -9,37 +9,35 @@ export function buildWhatsAppSlipText(customer) {
   const total = Number(customer.totalBill || 0).toLocaleString('en-IN');
   const paid = Number(customer.advancePaid || 0).toLocaleString('en-IN');
   const due = Number(customer.balanceDue || 0).toLocaleString('en-IN');
+  const hasDue = Number(customer.balanceDue || 0) > 0;
   const isPaid = Number(customer.balanceDue || 0) <= 0 && Number(customer.totalBill || 0) > 0;
-  
-  let paymentBadge = '₹0';
-  if (isPaid) {
-    paymentBadge = '✅ पूर्ण जमा (Fully Paid)';
-  } else if (Number(customer.balanceDue || 0) > 0) {
-    paymentBadge = `⚠️ बाकी रक्कम: ₹${due} (Pending Due)`;
+
+  let paymentLines = `• Total Bill: *₹${total}*\n• Advance Paid: *₹${paid}*`;
+  if (hasDue) {
+    paymentLines += `\n• *Balance Due: ₹${due}*`;
+  } else if (isPaid) {
+    paymentLines += `\n• Status: *✅ Paid (पूर्ण जमा)*`;
   }
 
-  const deliveryStr = customer.deliveryDate ? `*${customer.deliveryDate}*` : 'लवकरच कळवण्यात येईल';
+  const deliverySection = customer.deliveryDate 
+    ? `🚚 *Delivery Date:* *${customer.deliveryDate}*\n` 
+    : '';
 
-  return `*✂️ KAPSE - G 🔰 TAILORS*
-*डिजिटल बिल पावती / Digital Bill Slip*
-━━━━━━━━━━━━━━━━━━
-🆔 *Customer ID:* ${customer.id || '-'}
-👤 *ग्राहक नाव:* ${customer.name || '-'}
-📞 *मोबाईल:* ${customer.mobile || '-'}
-📍 *पत्ता:* ${customer.place || '-'}
-━━━━━━━━━━━━━━━━━━
-📖 *बिल बुक क्र.:* ${customer.billBook || '-'} | *पान क्र.:* ${customer.pageNo || '-'}
-📅 *नोंदणी तारीख:* ${customer.date || '-'}
-🚚 *डिलिव्हरी दिनांक:* ${deliveryStr}
-━━━━━━━━━━━━━━━━━━
-💰 *बिल व हिशोब तपशील:*
-• एकूण बिल (Total Bill): *₹${total}*
-• जमा रक्कम (Advance Paid): *₹${paid}*
-• बाकी रक्कम (Balance Due): *₹${due}*
-• स्टेटस: ${paymentBadge}
-${customer.notes ? `━━━━━━━━━━━━━━━━━━\n📝 *टीप / मापे (Notes):*\n${customer.notes}\n` : ''}━━━━━━━━━━━━━━━━━━
-🙏 *कापसे - जी टेलर्सला भेट दिल्याबद्दल धन्यवाद!*
-_आपले कपडे उत्कृष्ट फिनिशिंगसह वेळेत मिळतील._`;
+  const notesSection = customer.notes && customer.notes.trim()
+    ? `📝 *Note:* ${customer.notes.trim()}\n─────────────────\n`
+    : '';
+
+  return `*✂️ KAPSE - G TAILORS*
+*Bill Receipt / पावती*
+─────────────────
+👤 *Customer:* ${customer.name || '-'}
+📅 *Date:* ${customer.date || '-'}
+${deliverySection}─────────────────
+💵 *Payment Details:*
+${paymentLines}
+─────────────────
+${notesSection}📍 *Kapse Tailors, Vairag*
+🙏 _Thank you for your visit!_`;
 }
 
 export function cleanIndianMobile(rawMobile) {
@@ -67,7 +65,6 @@ export function openWhatsAppSlip(customer) {
   if (phone && phone.length >= 10) {
     url = `https://api.whatsapp.com/send?phone=${phone}&text=${encodedText}`;
   } else {
-    // If mobile number is not provided, open WhatsApp with text ready to choose contact
     url = `https://api.whatsapp.com/send?text=${encodedText}`;
   }
 

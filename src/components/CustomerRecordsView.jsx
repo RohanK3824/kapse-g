@@ -227,46 +227,26 @@ export default function CustomerRecordsView({
                             Del: {c.deliveryDate}
                           </span>
                         )}
-                        <div style={{ display: 'inline-flex', gap: '4px', marginTop: '3px' }}>
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-primary"
-                            onClick={() => onViewCustomer(c)}
-                            title="View Customer Bill Slip"
-                            style={{
-                              padding: '0.18rem 0.45rem',
-                              fontSize: '0.74rem',
-                              fontWeight: 600,
-                              borderRadius: '4px',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <i className="fa-solid fa-file-invoice"></i>
-                            <span>Slip</span>
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-sm"
-                            onClick={() => openWhatsAppSlip(c)}
-                            title="Send Digital Slip on WhatsApp"
-                            style={{
-                              padding: '0.18rem 0.45rem',
-                              fontSize: '0.74rem',
-                              fontWeight: 600,
-                              borderRadius: '4px',
-                              backgroundColor: '#25D366',
-                              color: '#ffffff',
-                              border: '1px solid #1ebe5d',
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '3px'
-                            }}
-                          >
-                            <i className="fa-brands fa-whatsapp"></i>
-                            <span>Send</span>
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-primary"
+                          onClick={() => onViewCustomer(c)}
+                          title="View Customer Bill Slip"
+                          style={{
+                            marginTop: '2px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '0.18rem 0.55rem',
+                            fontSize: '0.74rem',
+                            fontWeight: 600,
+                            borderRadius: '4px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <i className="fa-solid fa-file-invoice"></i>
+                          <span>View Slip</span>
+                        </button>
                       </div>
                     </td>
                     <td>
