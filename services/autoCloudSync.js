@@ -106,26 +106,49 @@ class AutoCloudSync {
     this.isSyncing = true;
 
     try {
-      // 1. Synchronize deleted customers list between Local and Cloud
+      // 1. Synchronize deleted customers list safely between Local and Cloud
       const [localDeleted] = await this.localPool.query('SELECT id FROM deleted_customers').catch(() => [[]]);
       const [cloudDeleted] = await this.cloudPool.query('SELECT id FROM deleted_customers').catch(() => [[]]);
 
-      const deletedIds = new Set([
-        ...localDeleted.map(r => r.id),
-        ...cloudDeleted.map(r => r.id)
-      ]);
+      const [localActive] = await this.localPool.query('SELECT id FROM customers').catch(() => [[]]);
+      const [cloudActive] = await this.cloudPool.query('SELECT id FROM customers').catch(() => [[]]);
 
-      // Ensure all deleted IDs are purged from both sides
-      for (const delId of deletedIds) {
+      const localActiveSet = new Set((localActive || []).map(r => r.id));
+      const cloudActiveSet = new Set((cloudActive || []).map(r => r.id));
+      const localDelSet = new Set((localDeleted || []).map(r => r.id));
+      const cloudDelSet = new Set((cloudDeleted || []).map(r => r.id));
+
+      const trueDeletedIds = new Set();
+
+      for (const delId of localDelSet) {
+        if (!localActiveSet.has(delId)) {
+          trueDeletedIds.add(delId);
+        } else {
+          // If customer is actively in local customers table, clear obsolete delete flag
+          await this.localPool.query('DELETE FROM deleted_customers WHERE id = ?', [delId]).catch(() => {});
+        }
+      }
+
+      for (const delId of cloudDelSet) {
+        if (!cloudActiveSet.has(delId) && !localActiveSet.has(delId)) {
+          trueDeletedIds.add(delId);
+        } else if (localActiveSet.has(delId)) {
+          // Local has active customer, remove from cloud deleted list
+          await this.cloudPool.query('DELETE FROM deleted_customers WHERE id = ?', [delId]).catch(() => {});
+        }
+      }
+
+      // Ensure truly deleted IDs are purged from both sides
+      for (const delId of trueDeletedIds) {
         await this.localPool.query('DELETE FROM customers WHERE id = ?', [delId]).catch(() => {});
         await this.cloudPool.query('DELETE FROM customers WHERE id = ?', [delId]).catch(() => {});
         await this.localPool.query('INSERT IGNORE INTO deleted_customers (id) VALUES (?)', [delId]).catch(() => {});
         await this.cloudPool.query('INSERT IGNORE INTO deleted_customers (id) VALUES (?)', [delId]).catch(() => {});
       }
 
-      // 2. Fetch Cloud customers (excluding deleted ones)
+      // 2. Fetch Cloud customers (excluding truly deleted ones)
       const [cloudRows] = await this.cloudPool.query('SELECT * FROM customers');
-      const activeCloudRows = cloudRows.filter(c => !deletedIds.has(c.id));
+      const activeCloudRows = cloudRows.filter(c => !trueDeletedIds.has(c.id));
 
       // 3. Insert any new/updated customers from Cloud into Laptop Local MySQL
       let newToLocalCount = 0;
@@ -158,11 +181,12 @@ class AutoCloudSync {
           newToLocalCount++;
           console.log(`[AutoCloudSync] 📲 New Mobile Customer Pulled to Laptop MySQL: [${c.id}] ${c.name} (${c.place})`);
         }
+        await this.localPool.query('DELETE FROM deleted_customers WHERE id = ?', [c.id]).catch(() => {});
       }
 
-      // 4. Fetch Local customers (excluding deleted ones) to push to cloud
+      // 4. Fetch Local customers (excluding truly deleted ones) to push to cloud
       const [localRows] = await this.localPool.query('SELECT * FROM customers');
-      const activeLocalRows = localRows.filter(l => !deletedIds.has(l.id));
+      const activeLocalRows = localRows.filter(l => !trueDeletedIds.has(l.id));
 
       let newToCloudCount = 0;
       for (const l of activeLocalRows) {
@@ -194,6 +218,7 @@ class AutoCloudSync {
           newToCloudCount++;
           console.log(`[AutoCloudSync] 💻 Local Laptop Customer Pushed to Cloud: [${l.id}] ${l.name} (${l.place})`);
         }
+        await this.cloudPool.query('DELETE FROM deleted_customers WHERE id = ?', [l.id]).catch(() => {});
       }
 
       if (newToLocalCount > 0 || newToCloudCount > 0) {

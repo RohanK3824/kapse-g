@@ -249,14 +249,32 @@ function ensurePool() {
 }
 
 /**
- * Generate next customer ID
+ * Generate next customer ID (ensures collision-free sequence across active and deleted records)
  */
 async function generateNextId() {
   const p = ensurePool();
-  const [rows] = await p.query('SELECT id FROM customers');
+
+  const queries = [
+    p.query('SELECT id FROM customers').then(([r]) => r).catch(() => []),
+    p.query('SELECT id FROM deleted_customers').then(([r]) => r).catch(() => [])
+  ];
+
+  try {
+    const autoCloudSync = require('./autoCloudSync');
+    if (autoCloudSync && autoCloudSync.cloudPool) {
+      queries.push(
+        autoCloudSync.cloudPool.query('SELECT id FROM customers').then(([r]) => r).catch(() => []),
+        autoCloudSync.cloudPool.query('SELECT id FROM deleted_customers').then(([r]) => r).catch(() => [])
+      );
+    }
+  } catch (_) {}
+
+  const results = await Promise.all(queries);
+  const allRows = results.flat();
+
   let maxNum = 1000;
-  for (const row of rows) {
-    const id = row.id;
+  for (const row of allRows) {
+    const id = row?.id;
     if (typeof id === 'string') {
       const match = id.match(/CUST-(\d+)/i);
       if (match) {
@@ -375,11 +393,23 @@ async function addCustomer(data) {
     deliveryDate
   };
 
+  // Ensure this ID is cleared from deleted_customers so sync never treats it as deleted
+  await p.query('DELETE FROM deleted_customers WHERE id = ?', [customer.id]).catch(() => {});
+
   await p.query(
     `INSERT INTO customers (id, name, mobile, place, bill_book, page_no, date, notes, total_bill, advance_paid, balance_due, delivery_date) 
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [customer.id, customer.name, customer.mobile, customer.place, customer.billBook, customer.pageNo, customer.date, customer.notes, customer.totalBill, customer.advancePaid, customer.balanceDue, customer.deliveryDate]
   );
+
+  // Instantly trigger cloud push in background
+  try {
+    const autoCloudSync = require('./autoCloudSync');
+    if (autoCloudSync && autoCloudSync.cloudPool) {
+      await autoCloudSync.cloudPool.query('DELETE FROM deleted_customers WHERE id = ?', [customer.id]).catch(() => {});
+      autoCloudSync.syncNow('addCustomer');
+    }
+  } catch (_) {}
 
   return customer;
 }
@@ -642,6 +672,9 @@ async function insertSyncedCustomer(data) {
       ]
     );
 
+    // Ensure this ID is cleared from deleted_customers
+    await conn.query('DELETE FROM deleted_customers WHERE id = ?', [targetId]).catch(() => {});
+
     await conn.commit();
 
     return {
@@ -783,6 +816,7 @@ module.exports = {
   initDatabase,
   getAllCustomers,
   getCustomerById,
+  generateNextId,
   addCustomer,
   updateCustomer,
   deleteCustomer,
