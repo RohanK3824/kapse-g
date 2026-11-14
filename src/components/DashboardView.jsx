@@ -97,7 +97,7 @@ export default function DashboardView({
                     <th>Bill Book</th>
                     <th>Page No</th>
                     <th>Reg. Date</th>
-                    <th style={{ textAlign: 'center' }}>Bill</th>
+                    <th style={{ minWidth: '130px', textAlign: 'center' }}>Bill (बिल)</th>
                     <th style={{ textAlign: 'center' }}>Actions</th>
                   </tr>
                 </thead>
@@ -128,26 +128,46 @@ export default function DashboardView({
                       <td><span className="bill-pill">{c.billBook}</span></td>
                       <td><span className="page-pill">Page {c.pageNo}</span></td>
                       <td>{c.date}</td>
-                      <td style={{ textAlign: 'center' }}>
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-primary"
-                          onClick={() => onViewCustomer(c)}
-                          title="View Customer Bill Slip"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                            padding: '0.25rem 0.65rem',
-                            fontSize: '0.8rem',
-                            fontWeight: 600,
-                            borderRadius: '6px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <i className="fa-solid fa-file-invoice"></i>
-                          <span>View Bill</span>
-                        </button>
+                      <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                        <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0f172a' }}>
+                            एकूण: ₹{Number(c.totalBill || 0).toLocaleString('en-IN')}
+                          </div>
+                          <div style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 600 }}>
+                            जमा: ₹{Number(c.advancePaid || 0).toLocaleString('en-IN')}
+                          </div>
+                          {Number(c.balanceDue || 0) > 0 ? (
+                            <span style={{ backgroundColor: '#fee2e2', color: '#dc2626', fontSize: '0.72rem', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                              बाकी: ₹{Number(c.balanceDue).toLocaleString('en-IN')}
+                            </span>
+                          ) : Number(c.totalBill || 0) > 0 ? (
+                            <span style={{ backgroundColor: '#dcfce7', color: '#16a34a', fontSize: '0.72rem', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                              ✓ पूर्ण जमा
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>-</span>
+                          )}
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-primary"
+                            onClick={() => onViewCustomer(c)}
+                            title="View Customer Bill Slip"
+                            style={{
+                              marginTop: '2px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '0.18rem 0.55rem',
+                              fontSize: '0.74rem',
+                              fontWeight: 600,
+                              borderRadius: '4px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <i className="fa-solid fa-file-invoice"></i>
+                            <span>पावती पहा</span>
+                          </button>
+                        </div>
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         <div className="action-buttons-group">

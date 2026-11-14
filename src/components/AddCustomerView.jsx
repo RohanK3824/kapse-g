@@ -10,7 +10,10 @@ export default function AddCustomerView({ onAddCustomer }) {
     billBook: '',
     pageNo: '',
     date: getTodayDate(),
-    notes: ''
+    notes: '',
+    totalBill: '',
+    advancePaid: '',
+    balanceDue: '0.00'
   };
 
   const [formData, setFormData] = useState(initialForm);
@@ -51,7 +54,15 @@ export default function AddCustomerView({ onAddCustomer }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const next = { ...prev, [name]: value };
+      if (name === 'totalBill' || name === 'advancePaid') {
+        const tot = parseFloat(name === 'totalBill' ? value : prev.totalBill) || 0;
+        const adv = parseFloat(name === 'advancePaid' ? value : prev.advancePaid) || 0;
+        next.balanceDue = Math.max(0, tot - adv).toFixed(2);
+      }
+      return next;
+    });
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: null }));
     }
@@ -206,7 +217,99 @@ export default function AddCustomerView({ onAddCustomer }) {
                 <small className="field-hint">Automatically defaults to today's date.</small>
               </div>
 
-              {/* 7. Additional Notes */}
+              {/* 7. Billing & Payment Details (बिल व हिशोब) */}
+              <div className="form-group full-width">
+                <div style={{
+                  background: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '10px',
+                  padding: '1.15rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.85rem'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <label className="form-label" style={{ margin: 0, fontWeight: 700, color: '#0f2942', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.95rem' }}>
+                      <i className="fa-solid fa-calculator" style={{ color: '#0284c7' }}></i>
+                      <span>Billing &amp; Payment Details (बिल व हिशोब)</span>
+                    </label>
+                    {parseFloat(formData.totalBill || 0) > 0 && (
+                      parseFloat(formData.balanceDue || 0) > 0 ? (
+                        <span style={{ fontSize: '0.82rem', padding: '3px 10px', borderRadius: '12px', background: '#fee2e2', color: '#b91c1c', fontWeight: 700 }}>
+                          बाकी रक्कम: ₹{parseFloat(formData.balanceDue || 0).toLocaleString('en-IN')}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '0.82rem', padding: '3px 10px', borderRadius: '12px', background: '#dcfce7', color: '#15803d', fontWeight: 700 }}>
+                          ✓ पूर्ण जमा (Paid)
+                        </span>
+                      )
+                    )}
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                    {/* Total Bill */}
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.82rem', marginBottom: '4px', fontWeight: 600 }}>
+                        एकूण बिल (Total Bill ₹)
+                      </label>
+                      <div className="input-group">
+                        <span className="input-icon" style={{ fontWeight: 700, color: '#0f2942' }}>₹</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          name="totalBill"
+                          className="form-control"
+                          placeholder="e.g. 500"
+                          value={formData.totalBill}
+                          onChange={handleChange}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Advance Paid */}
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.82rem', marginBottom: '4px', fontWeight: 600, color: '#16a34a' }}>
+                        जमा रक्कम (Paid / Advance ₹)
+                      </label>
+                      <div className="input-group">
+                        <span className="input-icon" style={{ fontWeight: 700, color: '#16a34a' }}>₹</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          name="advancePaid"
+                          className="form-control"
+                          placeholder="e.g. 200"
+                          value={formData.advancePaid}
+                          onChange={handleChange}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Balance Due (Auto-calculated) */}
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.82rem', marginBottom: '4px', fontWeight: 600, color: '#dc2626' }}>
+                        बाकी रक्कम (Balance Due ₹)
+                      </label>
+                      <div className="input-group">
+                        <span className="input-icon" style={{ fontWeight: 700, color: '#dc2626' }}>₹</span>
+                        <input
+                          type="text"
+                          name="balanceDue"
+                          className="form-control"
+                          placeholder="0.00"
+                          value={formData.balanceDue !== '' ? formData.balanceDue : '0.00'}
+                          readOnly
+                          style={{ backgroundColor: '#f1f5f9', fontWeight: 700, color: '#dc2626' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 8. Additional Notes */}
               <div className="form-group full-width">
                 <label className="form-label">
                   Additional Notes <span style={{ color: '#64748b', fontWeight: 400 }}>(Optional)</span>

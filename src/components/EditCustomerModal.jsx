@@ -8,7 +8,10 @@ export default function EditCustomerModal({ customer, onClose, onSave, onUpdate 
     billBook: '',
     pageNo: '',
     date: '',
-    notes: ''
+    notes: '',
+    totalBill: '',
+    advancePaid: '',
+    balanceDue: '0.00'
   });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -36,6 +39,12 @@ export default function EditCustomerModal({ customer, onClose, onSave, onUpdate 
         }
       }
 
+      const tot = customer.totalBill !== undefined && customer.totalBill !== null ? customer.totalBill : '';
+      const adv = customer.advancePaid !== undefined && customer.advancePaid !== null ? customer.advancePaid : '';
+      const bal = customer.balanceDue !== undefined && customer.balanceDue !== null 
+        ? customer.balanceDue 
+        : Math.max(0, (parseFloat(tot) || 0) - (parseFloat(adv) || 0)).toFixed(2);
+
       setFormData({
         name: customer.name || '',
         mobile: customer.mobile !== undefined ? String(customer.mobile) : '',
@@ -43,7 +52,10 @@ export default function EditCustomerModal({ customer, onClose, onSave, onUpdate 
         billBook: customer.billBook !== undefined ? String(customer.billBook) : '',
         pageNo: customer.pageNo !== undefined ? String(customer.pageNo) : '',
         date: cleanDate || new Date().toISOString().split('T')[0],
-        notes: customer.notes || ''
+        notes: customer.notes || '',
+        totalBill: tot,
+        advancePaid: adv,
+        balanceDue: bal
       });
       setErrors({});
     }
@@ -84,7 +96,15 @@ export default function EditCustomerModal({ customer, onClose, onSave, onUpdate 
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const next = { ...prev, [name]: value };
+      if (name === 'totalBill' || name === 'advancePaid') {
+        const tot = parseFloat(name === 'totalBill' ? value : prev.totalBill) || 0;
+        const adv = parseFloat(name === 'advancePaid' ? value : prev.advancePaid) || 0;
+        next.balanceDue = Math.max(0, tot - adv).toFixed(2);
+      }
+      return next;
+    });
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
 
@@ -230,6 +250,98 @@ export default function EditCustomerModal({ customer, onClose, onSave, onUpdate 
                   />
                 </div>
                 {errors.date && <div className="field-error">{errors.date}</div>}
+              </div>
+
+              {/* Billing & Payment Details (बिल व हिशोब) */}
+              <div className="form-group full-width">
+                <div style={{
+                  background: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '10px',
+                  padding: '1.15rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.85rem'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <label className="form-label" style={{ margin: 0, fontWeight: 700, color: '#0f2942', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.95rem' }}>
+                      <i className="fa-solid fa-calculator" style={{ color: '#0284c7' }}></i>
+                      <span>Billing &amp; Payment Details (बिल व हिशोब)</span>
+                    </label>
+                    {parseFloat(formData.totalBill || 0) > 0 && (
+                      parseFloat(formData.balanceDue || 0) > 0 ? (
+                        <span style={{ fontSize: '0.82rem', padding: '3px 10px', borderRadius: '12px', background: '#fee2e2', color: '#b91c1c', fontWeight: 700 }}>
+                          बाकी रक्कम: ₹{parseFloat(formData.balanceDue || 0).toLocaleString('en-IN')}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '0.82rem', padding: '3px 10px', borderRadius: '12px', background: '#dcfce7', color: '#15803d', fontWeight: 700 }}>
+                          ✓ पूर्ण जमा (Paid)
+                        </span>
+                      )
+                    )}
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
+                    {/* Total Bill */}
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.82rem', marginBottom: '4px', fontWeight: 600 }}>
+                        एकूण बिल (Total Bill ₹)
+                      </label>
+                      <div className="input-group">
+                        <span className="input-icon" style={{ fontWeight: 700, color: '#0f2942' }}>₹</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          name="totalBill"
+                          className="form-control"
+                          placeholder="e.g. 500"
+                          value={formData.totalBill}
+                          onChange={handleChange}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Advance Paid */}
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.82rem', marginBottom: '4px', fontWeight: 600, color: '#16a34a' }}>
+                        जमा रक्कम (Paid / Advance ₹)
+                      </label>
+                      <div className="input-group">
+                        <span className="input-icon" style={{ fontWeight: 700, color: '#16a34a' }}>₹</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          name="advancePaid"
+                          className="form-control"
+                          placeholder="e.g. 200"
+                          value={formData.advancePaid}
+                          onChange={handleChange}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Balance Due */}
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.82rem', marginBottom: '4px', fontWeight: 600, color: '#dc2626' }}>
+                        बाकी रक्कम (Balance Due ₹)
+                      </label>
+                      <div className="input-group">
+                        <span className="input-icon" style={{ fontWeight: 700, color: '#dc2626' }}>₹</span>
+                        <input
+                          type="text"
+                          name="balanceDue"
+                          className="form-control"
+                          placeholder="0.00"
+                          value={formData.balanceDue !== '' ? formData.balanceDue : '0.00'}
+                          readOnly
+                          style={{ backgroundColor: '#f1f5f9', fontWeight: 700, color: '#dc2626' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Notes */}

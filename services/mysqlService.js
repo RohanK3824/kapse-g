@@ -105,6 +105,15 @@ async function initDatabase() {
       await pool.query('ALTER TABLE customers MODIFY id VARCHAR(50)');
     } catch (_) {}
     try {
+      await pool.query('ALTER TABLE customers ADD COLUMN total_bill DECIMAL(10,2) DEFAULT 0.00');
+    } catch (_) {}
+    try {
+      await pool.query('ALTER TABLE customers ADD COLUMN advance_paid DECIMAL(10,2) DEFAULT 0.00');
+    } catch (_) {}
+    try {
+      await pool.query('ALTER TABLE customers ADD COLUMN balance_due DECIMAL(10,2) DEFAULT 0.00');
+    } catch (_) {}
+    try {
       await pool.query("ALTER TABLE customers ADD COLUMN sync_status VARCHAR(20) DEFAULT 'synced'");
     } catch (_) {}
     try {
@@ -266,6 +275,9 @@ async function getAllCustomers(options = {}) {
   let sql = `
     SELECT id, name, mobile, place, bill_book AS billBook, page_no AS pageNo, 
            DATE_FORMAT(date, '%Y-%m-%d') AS date, notes, created_at, updated_at,
+           CAST(COALESCE(total_bill, 0.00) AS DECIMAL(10,2)) AS totalBill,
+           CAST(COALESCE(advance_paid, 0.00) AS DECIMAL(10,2)) AS advancePaid,
+           CAST(COALESCE(balance_due, 0.00) AS DECIMAL(10,2)) AS balanceDue,
            COALESCE(sync_status, 'synced') AS syncStatus,
            DATE_FORMAT(synced_at, '%Y-%m-%d %H:%i:%s') AS syncedAt,
            COALESCE(device_source, 'local') AS deviceSource,
@@ -315,6 +327,9 @@ async function getCustomerById(id) {
   const [rows] = await p.query(
     `SELECT id, name, mobile, place, bill_book AS billBook, page_no AS pageNo, 
             DATE_FORMAT(date, '%Y-%m-%d') AS date, notes, created_at, updated_at,
+            CAST(COALESCE(total_bill, 0.00) AS DECIMAL(10,2)) AS totalBill,
+            CAST(COALESCE(advance_paid, 0.00) AS DECIMAL(10,2)) AS advancePaid,
+            CAST(COALESCE(balance_due, 0.00) AS DECIMAL(10,2)) AS balanceDue,
             COALESCE(sync_status, 'synced') AS syncStatus,
             DATE_FORMAT(synced_at, '%Y-%m-%d %H:%i:%s') AS syncedAt,
             COALESCE(device_source, 'local') AS deviceSource,
@@ -333,6 +348,12 @@ async function addCustomer(data) {
   const newId = await generateNextId();
   const dateStr = data.date || new Date().toISOString().split('T')[0];
 
+  const totalBill = parseFloat(data.totalBill || data.total_bill || 0) || 0;
+  const advancePaid = parseFloat(data.advancePaid || data.advance_paid || 0) || 0;
+  const balanceDue = data.balanceDue !== undefined && data.balanceDue !== null 
+    ? (parseFloat(data.balanceDue) || 0) 
+    : Math.max(0, totalBill - advancePaid);
+
   const customer = {
     id: newId,
     name: String(data.name || '').trim(),
@@ -341,13 +362,16 @@ async function addCustomer(data) {
     billBook: String(data.billBook || '').trim(),
     pageNo: String(data.pageNo || '').trim(),
     date: dateStr,
-    notes: String(data.notes || '').trim()
+    notes: String(data.notes || '').trim(),
+    totalBill,
+    advancePaid,
+    balanceDue
   };
 
   await p.query(
-    `INSERT INTO customers (id, name, mobile, place, bill_book, page_no, date, notes) 
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [customer.id, customer.name, customer.mobile, customer.place, customer.billBook, customer.pageNo, customer.date, customer.notes]
+    `INSERT INTO customers (id, name, mobile, place, bill_book, page_no, date, notes, total_bill, advance_paid, balance_due) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [customer.id, customer.name, customer.mobile, customer.place, customer.billBook, customer.pageNo, customer.date, customer.notes, customer.totalBill, customer.advancePaid, customer.balanceDue]
   );
 
   return customer;
@@ -361,6 +385,12 @@ async function updateCustomer(id, data) {
   const existing = await getCustomerById(id);
   if (!existing) return null;
 
+  const totalBill = data.totalBill !== undefined ? (parseFloat(data.totalBill) || 0) : existing.totalBill;
+  const advancePaid = data.advancePaid !== undefined ? (parseFloat(data.advancePaid) || 0) : existing.advancePaid;
+  const balanceDue = data.balanceDue !== undefined && data.balanceDue !== null 
+    ? (parseFloat(data.balanceDue) || 0) 
+    : Math.max(0, totalBill - advancePaid);
+
   const updated = {
     name: data.name !== undefined ? String(data.name).trim() : existing.name,
     mobile: data.mobile !== undefined ? String(data.mobile).trim() : existing.mobile,
@@ -368,14 +398,17 @@ async function updateCustomer(id, data) {
     billBook: data.billBook !== undefined ? String(data.billBook).trim() : existing.billBook,
     pageNo: data.pageNo !== undefined ? String(data.pageNo).trim() : existing.pageNo,
     date: data.date !== undefined ? String(data.date).trim() : existing.date,
-    notes: data.notes !== undefined ? String(data.notes).trim() : existing.notes
+    notes: data.notes !== undefined ? String(data.notes).trim() : existing.notes,
+    totalBill,
+    advancePaid,
+    balanceDue
   };
 
   await p.query(
     `UPDATE customers 
-     SET name = ?, mobile = ?, place = ?, bill_book = ?, page_no = ?, date = ?, notes = ? 
+     SET name = ?, mobile = ?, place = ?, bill_book = ?, page_no = ?, date = ?, notes = ?, total_bill = ?, advance_paid = ?, balance_due = ? 
      WHERE id = ?`,
-    [updated.name, updated.mobile, updated.place, updated.billBook, updated.pageNo, updated.date, updated.notes, id]
+    [updated.name, updated.mobile, updated.place, updated.billBook, updated.pageNo, updated.date, updated.notes, updated.totalBill, updated.advancePaid, updated.balanceDue, id]
   );
 
   // If autoCloudSync is active, immediately sync update to Cloud
@@ -384,9 +417,9 @@ async function updateCustomer(id, data) {
     if (autoCloudSync && autoCloudSync.cloudPool) {
       await autoCloudSync.cloudPool.query(
         `UPDATE customers 
-         SET name = ?, mobile = ?, place = ?, bill_book = ?, page_no = ?, date = ?, notes = ? 
+         SET name = ?, mobile = ?, place = ?, bill_book = ?, page_no = ?, date = ?, notes = ?, total_bill = ?, advance_paid = ?, balance_due = ? 
          WHERE id = ?`,
-        [updated.name, updated.mobile, updated.place, updated.billBook, updated.pageNo, updated.date, updated.notes, id]
+        [updated.name, updated.mobile, updated.place, updated.billBook, updated.pageNo, updated.date, updated.notes, updated.totalBill, updated.advancePaid, updated.balanceDue, id]
       );
     }
   } catch (_) {}
@@ -462,6 +495,9 @@ async function exportToExcel() {
     { header: 'Bill Book Number', key: 'billBook', width: 18 },
     { header: 'Page Number', key: 'pageNo', width: 14 },
     { header: 'Date', key: 'date', width: 16 },
+    { header: 'Total Bill (₹)', key: 'totalBill', width: 16 },
+    { header: 'Advance Paid (₹)', key: 'advancePaid', width: 16 },
+    { header: 'Balance Due (₹)', key: 'balanceDue', width: 16 },
     { header: 'Notes', key: 'notes', width: 32 }
   ];
 
@@ -476,11 +512,23 @@ async function exportToExcel() {
 
   // Data rows
   customers.forEach((c, idx) => {
-    const row = worksheet.addRow([c.id, c.name, c.mobile, c.place, c.billBook, c.pageNo, c.date, c.notes]);
+    const row = worksheet.addRow([
+      c.id,
+      c.name,
+      c.mobile,
+      c.place,
+      c.billBook,
+      c.pageNo,
+      c.date,
+      Number(c.totalBill || 0),
+      Number(c.advancePaid || 0),
+      Number(c.balanceDue || 0),
+      c.notes
+    ]);
     row.height = 24;
     row.eachCell((cell, col) => {
       cell.font = { name: 'Segoe UI', size: 10 };
-      cell.alignment = { vertical: 'middle', horizontal: col === 2 || col === 4 || col === 8 ? 'left' : 'center' };
+      cell.alignment = { vertical: 'middle', horizontal: col === 2 || col === 4 || col === 11 ? 'left' : 'center' };
       if (idx % 2 === 1) {
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
       }
