@@ -114,6 +114,9 @@ async function initDatabase() {
       await pool.query('ALTER TABLE customers ADD COLUMN balance_due DECIMAL(10,2) DEFAULT 0.00');
     } catch (_) {}
     try {
+      await pool.query('ALTER TABLE customers ADD COLUMN delivery_date DATE DEFAULT NULL');
+    } catch (_) {}
+    try {
       await pool.query("ALTER TABLE customers ADD COLUMN sync_status VARCHAR(20) DEFAULT 'synced'");
     } catch (_) {}
     try {
@@ -278,6 +281,7 @@ async function getAllCustomers(options = {}) {
            CAST(COALESCE(total_bill, 0.00) AS DECIMAL(10,2)) AS totalBill,
            CAST(COALESCE(advance_paid, 0.00) AS DECIMAL(10,2)) AS advancePaid,
            CAST(COALESCE(balance_due, 0.00) AS DECIMAL(10,2)) AS balanceDue,
+           DATE_FORMAT(delivery_date, '%Y-%m-%d') AS deliveryDate,
            COALESCE(sync_status, 'synced') AS syncStatus,
            DATE_FORMAT(synced_at, '%Y-%m-%d %H:%i:%s') AS syncedAt,
            COALESCE(device_source, 'local') AS deviceSource,
@@ -330,6 +334,7 @@ async function getCustomerById(id) {
             CAST(COALESCE(total_bill, 0.00) AS DECIMAL(10,2)) AS totalBill,
             CAST(COALESCE(advance_paid, 0.00) AS DECIMAL(10,2)) AS advancePaid,
             CAST(COALESCE(balance_due, 0.00) AS DECIMAL(10,2)) AS balanceDue,
+            DATE_FORMAT(delivery_date, '%Y-%m-%d') AS deliveryDate,
             COALESCE(sync_status, 'synced') AS syncStatus,
             DATE_FORMAT(synced_at, '%Y-%m-%d %H:%i:%s') AS syncedAt,
             COALESCE(device_source, 'local') AS deviceSource,
@@ -353,6 +358,7 @@ async function addCustomer(data) {
   const balanceDue = data.balanceDue !== undefined && data.balanceDue !== null 
     ? (parseFloat(data.balanceDue) || 0) 
     : Math.max(0, totalBill - advancePaid);
+  const deliveryDate = data.deliveryDate || data.delivery_date || null;
 
   const customer = {
     id: newId,
@@ -365,13 +371,14 @@ async function addCustomer(data) {
     notes: String(data.notes || '').trim(),
     totalBill,
     advancePaid,
-    balanceDue
+    balanceDue,
+    deliveryDate
   };
 
   await p.query(
-    `INSERT INTO customers (id, name, mobile, place, bill_book, page_no, date, notes, total_bill, advance_paid, balance_due) 
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [customer.id, customer.name, customer.mobile, customer.place, customer.billBook, customer.pageNo, customer.date, customer.notes, customer.totalBill, customer.advancePaid, customer.balanceDue]
+    `INSERT INTO customers (id, name, mobile, place, bill_book, page_no, date, notes, total_bill, advance_paid, balance_due, delivery_date) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [customer.id, customer.name, customer.mobile, customer.place, customer.billBook, customer.pageNo, customer.date, customer.notes, customer.totalBill, customer.advancePaid, customer.balanceDue, customer.deliveryDate]
   );
 
   return customer;
@@ -390,6 +397,9 @@ async function updateCustomer(id, data) {
   const balanceDue = data.balanceDue !== undefined && data.balanceDue !== null 
     ? (parseFloat(data.balanceDue) || 0) 
     : Math.max(0, totalBill - advancePaid);
+  const deliveryDate = data.deliveryDate !== undefined 
+    ? (data.deliveryDate || null) 
+    : (existing.deliveryDate || null);
 
   const updated = {
     name: data.name !== undefined ? String(data.name).trim() : existing.name,
@@ -401,14 +411,15 @@ async function updateCustomer(id, data) {
     notes: data.notes !== undefined ? String(data.notes).trim() : existing.notes,
     totalBill,
     advancePaid,
-    balanceDue
+    balanceDue,
+    deliveryDate
   };
 
   await p.query(
     `UPDATE customers 
-     SET name = ?, mobile = ?, place = ?, bill_book = ?, page_no = ?, date = ?, notes = ?, total_bill = ?, advance_paid = ?, balance_due = ? 
+     SET name = ?, mobile = ?, place = ?, bill_book = ?, page_no = ?, date = ?, notes = ?, total_bill = ?, advance_paid = ?, balance_due = ?, delivery_date = ? 
      WHERE id = ?`,
-    [updated.name, updated.mobile, updated.place, updated.billBook, updated.pageNo, updated.date, updated.notes, updated.totalBill, updated.advancePaid, updated.balanceDue, id]
+    [updated.name, updated.mobile, updated.place, updated.billBook, updated.pageNo, updated.date, updated.notes, updated.totalBill, updated.advancePaid, updated.balanceDue, updated.deliveryDate, id]
   );
 
   // If autoCloudSync is active, immediately sync update to Cloud
@@ -417,9 +428,9 @@ async function updateCustomer(id, data) {
     if (autoCloudSync && autoCloudSync.cloudPool) {
       await autoCloudSync.cloudPool.query(
         `UPDATE customers 
-         SET name = ?, mobile = ?, place = ?, bill_book = ?, page_no = ?, date = ?, notes = ?, total_bill = ?, advance_paid = ?, balance_due = ? 
+         SET name = ?, mobile = ?, place = ?, bill_book = ?, page_no = ?, date = ?, notes = ?, total_bill = ?, advance_paid = ?, balance_due = ?, delivery_date = ? 
          WHERE id = ?`,
-        [updated.name, updated.mobile, updated.place, updated.billBook, updated.pageNo, updated.date, updated.notes, updated.totalBill, updated.advancePaid, updated.balanceDue, id]
+        [updated.name, updated.mobile, updated.place, updated.billBook, updated.pageNo, updated.date, updated.notes, updated.totalBill, updated.advancePaid, updated.balanceDue, updated.deliveryDate, id]
       );
     }
   } catch (_) {}
@@ -495,6 +506,7 @@ async function exportToExcel() {
     { header: 'Bill Book Number', key: 'billBook', width: 18 },
     { header: 'Page Number', key: 'pageNo', width: 14 },
     { header: 'Date', key: 'date', width: 16 },
+    { header: 'Delivery Date', key: 'deliveryDate', width: 16 },
     { header: 'Total Bill (₹)', key: 'totalBill', width: 16 },
     { header: 'Advance Paid (₹)', key: 'advancePaid', width: 16 },
     { header: 'Balance Due (₹)', key: 'balanceDue', width: 16 },
@@ -520,6 +532,7 @@ async function exportToExcel() {
       c.billBook,
       c.pageNo,
       c.date,
+      c.deliveryDate || '-',
       Number(c.totalBill || 0),
       Number(c.advancePaid || 0),
       Number(c.balanceDue || 0),

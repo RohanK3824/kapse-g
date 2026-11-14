@@ -11,7 +11,8 @@ export default function EditCustomerModal({ customer, onClose, onSave, onUpdate 
     notes: '',
     totalBill: '',
     advancePaid: '',
-    balanceDue: '0.00'
+    balanceDue: '0.00',
+    deliveryDate: ''
   });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -39,6 +40,26 @@ export default function EditCustomerModal({ customer, onClose, onSave, onUpdate 
         }
       }
 
+      let cleanDeliveryDate = '';
+      if (customer.deliveryDate) {
+        if (typeof customer.deliveryDate === 'string') {
+          if (customer.deliveryDate.includes('T')) {
+            cleanDeliveryDate = customer.deliveryDate.split('T')[0];
+          } else if (customer.deliveryDate.includes('-')) {
+            const parts = customer.deliveryDate.split('-');
+            if (parts[0].length === 4) {
+              cleanDeliveryDate = customer.deliveryDate;
+            } else if (parts[2].length === 4) {
+              cleanDeliveryDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            }
+          } else {
+            cleanDeliveryDate = customer.deliveryDate;
+          }
+        } else if (customer.deliveryDate instanceof Date) {
+          cleanDeliveryDate = customer.deliveryDate.toISOString().split('T')[0];
+        }
+      }
+
       const tot = customer.totalBill !== undefined && customer.totalBill !== null ? customer.totalBill : '';
       const adv = customer.advancePaid !== undefined && customer.advancePaid !== null ? customer.advancePaid : '';
       const bal = customer.balanceDue !== undefined && customer.balanceDue !== null 
@@ -55,7 +76,8 @@ export default function EditCustomerModal({ customer, onClose, onSave, onUpdate 
         notes: customer.notes || '',
         totalBill: tot,
         advancePaid: adv,
-        balanceDue: bal
+        balanceDue: bal,
+        deliveryDate: cleanDeliveryDate
       });
       setErrors({});
     }
@@ -337,6 +359,25 @@ export default function EditCustomerModal({ customer, onClose, onSave, onUpdate 
                           value={formData.balanceDue !== '' ? formData.balanceDue : '0.00'}
                           readOnly
                           style={{ backgroundColor: '#f1f5f9', fontWeight: 700, color: '#dc2626' }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Delivery Date */}
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.82rem', marginBottom: '4px', fontWeight: 600, color: '#0369a1' }}>
+                        Delivery Date
+                      </label>
+                      <div className="input-group">
+                        <span className="input-icon" style={{ color: '#0369a1' }}>
+                          <i className="fa-regular fa-calendar-check"></i>
+                        </span>
+                        <input
+                          type="date"
+                          name="deliveryDate"
+                          className="form-control"
+                          value={formData.deliveryDate}
+                          onChange={handleChange}
                         />
                       </div>
                     </div>

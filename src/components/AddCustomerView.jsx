@@ -13,7 +13,8 @@ export default function AddCustomerView({ onAddCustomer }) {
     notes: '',
     totalBill: '',
     advancePaid: '',
-    balanceDue: '0.00'
+    balanceDue: '0.00',
+    deliveryDate: ''
   };
 
   const [formData, setFormData] = useState(initialForm);
@@ -302,6 +303,25 @@ export default function AddCustomerView({ onAddCustomer }) {
                           value={formData.balanceDue !== '' ? formData.balanceDue : '0.00'}
                           readOnly
                           style={{ backgroundColor: '#f1f5f9', fontWeight: 700, color: '#dc2626' }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Delivery Date */}
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.82rem', marginBottom: '4px', fontWeight: 600, color: '#0369a1' }}>
+                        Delivery Date
+                      </label>
+                      <div className="input-group">
+                        <span className="input-icon" style={{ color: '#0369a1' }}>
+                          <i className="fa-regular fa-calendar-check"></i>
+                        </span>
+                        <input
+                          type="date"
+                          name="deliveryDate"
+                          className="form-control"
+                          value={formData.deliveryDate}
+                          onChange={handleChange}
                         />
                       </div>
                     </div>

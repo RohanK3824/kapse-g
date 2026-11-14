@@ -131,13 +131,14 @@ class AutoCloudSync {
       let newToLocalCount = 0;
       for (const c of activeCloudRows) {
         const formattedDate = c.date instanceof Date ? c.date.toISOString().split('T')[0] : c.date;
+        const formattedDeliveryDate = c.delivery_date instanceof Date ? c.delivery_date.toISOString().split('T')[0] : (c.delivery_date || null);
         const totalBill = parseFloat(c.total_bill || 0) || 0;
         const advancePaid = parseFloat(c.advance_paid || 0) || 0;
         const balanceDue = c.balance_due !== undefined ? (parseFloat(c.balance_due) || 0) : Math.max(0, totalBill - advancePaid);
 
         const [res] = await this.localPool.query(
-          `INSERT INTO customers (id, name, mobile, place, bill_book, page_no, date, notes, total_bill, advance_paid, balance_due)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `INSERT INTO customers (id, name, mobile, place, bill_book, page_no, date, notes, total_bill, advance_paid, balance_due, delivery_date)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON DUPLICATE KEY UPDATE
              name = VALUES(name),
              mobile = VALUES(mobile),
@@ -148,8 +149,9 @@ class AutoCloudSync {
              notes = VALUES(notes),
              total_bill = VALUES(total_bill),
              advance_paid = VALUES(advance_paid),
-             balance_due = VALUES(balance_due)`,
-          [c.id, c.name, c.mobile, c.place, c.bill_book, c.page_no, formattedDate, c.notes, totalBill, advancePaid, balanceDue]
+             balance_due = VALUES(balance_due),
+             delivery_date = VALUES(delivery_date)`,
+          [c.id, c.name, c.mobile, c.place, c.bill_book, c.page_no, formattedDate, c.notes, totalBill, advancePaid, balanceDue, formattedDeliveryDate]
         );
 
         if (res.affectedRows === 1) {
@@ -165,13 +167,14 @@ class AutoCloudSync {
       let newToCloudCount = 0;
       for (const l of activeLocalRows) {
         const formattedDate = l.date instanceof Date ? l.date.toISOString().split('T')[0] : l.date;
+        const formattedDeliveryDate = l.delivery_date instanceof Date ? l.delivery_date.toISOString().split('T')[0] : (l.delivery_date || null);
         const totalBill = parseFloat(l.total_bill || 0) || 0;
         const advancePaid = parseFloat(l.advance_paid || 0) || 0;
         const balanceDue = l.balance_due !== undefined ? (parseFloat(l.balance_due) || 0) : Math.max(0, totalBill - advancePaid);
 
         const [res] = await this.cloudPool.query(
-          `INSERT INTO customers (id, name, mobile, place, bill_book, page_no, date, notes, total_bill, advance_paid, balance_due)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `INSERT INTO customers (id, name, mobile, place, bill_book, page_no, date, notes, total_bill, advance_paid, balance_due, delivery_date)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON DUPLICATE KEY UPDATE
              name = VALUES(name),
              mobile = VALUES(mobile),
@@ -182,8 +185,9 @@ class AutoCloudSync {
              notes = VALUES(notes),
              total_bill = VALUES(total_bill),
              advance_paid = VALUES(advance_paid),
-             balance_due = VALUES(balance_due)`,
-          [l.id, l.name, l.mobile, l.place, l.bill_book, l.page_no, formattedDate, l.notes, totalBill, advancePaid, balanceDue]
+             balance_due = VALUES(balance_due),
+             delivery_date = VALUES(delivery_date)`,
+          [l.id, l.name, l.mobile, l.place, l.bill_book, l.page_no, formattedDate, l.notes, totalBill, advancePaid, balanceDue, formattedDeliveryDate]
         );
 
         if (res.affectedRows === 1) {

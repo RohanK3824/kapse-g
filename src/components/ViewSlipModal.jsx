@@ -37,6 +37,16 @@ export default function ViewSlipModal({ customer, onClose, onEdit }) {
                 <span className="slip-label">Registration Date</span>
                 <span className="slip-value">{customer.date}</span>
               </div>
+              <div className="slip-field">
+                <span className="slip-label">Delivery Date</span>
+                <span className="slip-value" style={{ color: '#0369a1', fontWeight: 700 }}>
+                  {customer.deliveryDate ? (
+                    <><i className="fa-regular fa-calendar-check" style={{ marginRight: '5px' }}></i>{customer.deliveryDate}</>
+                  ) : (
+                    <span style={{ color: '#94a3b8', fontWeight: 400 }}>Not set</span>
+                  )}
+                </span>
+              </div>
 
               <div className="slip-field">
                 <span className="slip-label">Customer Name</span>
@@ -118,6 +128,24 @@ export default function ViewSlipModal({ customer, onClose, onEdit }) {
                     </div>
                   </div>
                 </div>
+
+                {customer.deliveryDate && (
+                  <div style={{
+                    marginTop: '0.65rem',
+                    paddingTop: '0.5rem',
+                    borderTop: '1px dashed #cbd5e1',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    fontSize: '0.86rem',
+                    color: '#0369a1',
+                    fontWeight: 700
+                  }}>
+                    <i className="fa-regular fa-calendar-check"></i>
+                    <span>Promised Delivery Date: {customer.deliveryDate}</span>
+                  </div>
+                )}
               </div>
 
               <div className="slip-field full">

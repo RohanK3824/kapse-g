@@ -147,6 +147,12 @@ export default function DashboardView({
                           ) : (
                             <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>-</span>
                           )}
+                          {c.deliveryDate && (
+                            <span style={{ fontSize: '0.72rem', color: '#0369a1', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                              <i className="fa-regular fa-calendar-check" style={{ fontSize: '0.68rem' }}></i>
+                              Del: {c.deliveryDate}
+                            </span>
+                          )}
                           <button
                             type="button"
                             className="btn btn-sm btn-outline-primary"
