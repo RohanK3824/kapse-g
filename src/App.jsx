@@ -237,6 +237,7 @@ export default function App() {
         customer={editCustomer}
         onClose={() => setEditCustomer(null)}
         onSave={handleUpdateCustomer}
+        onUpdate={handleUpdateCustomer}
       />
 
       <DeleteModal

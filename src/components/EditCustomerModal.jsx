@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export default function EditCustomerModal({ customer, onClose, onUpdate }) {
+export default function EditCustomerModal({ customer, onClose, onSave, onUpdate }) {
   const [formData, setFormData] = useState({
     name: '',
     mobile: '',
@@ -15,13 +15,34 @@ export default function EditCustomerModal({ customer, onClose, onUpdate }) {
 
   useEffect(() => {
     if (customer) {
+      // Ensure date is properly formatted as YYYY-MM-DD for HTML5 date input
+      let cleanDate = '';
+      if (customer.date) {
+        if (typeof customer.date === 'string') {
+          if (customer.date.includes('T')) {
+            cleanDate = customer.date.split('T')[0];
+          } else if (customer.date.includes('-')) {
+            const parts = customer.date.split('-');
+            if (parts[0].length === 4) {
+              cleanDate = customer.date;
+            } else if (parts[2].length === 4) {
+              cleanDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            }
+          } else {
+            cleanDate = customer.date;
+          }
+        } else if (customer.date instanceof Date) {
+          cleanDate = customer.date.toISOString().split('T')[0];
+        }
+      }
+
       setFormData({
         name: customer.name || '',
-        mobile: customer.mobile || '',
+        mobile: customer.mobile !== undefined ? String(customer.mobile) : '',
         place: customer.place || '',
-        billBook: customer.billBook || '',
-        pageNo: customer.pageNo || '',
-        date: customer.date || '',
+        billBook: customer.billBook !== undefined ? String(customer.billBook) : '',
+        pageNo: customer.pageNo !== undefined ? String(customer.pageNo) : '',
+        date: cleanDate || new Date().toISOString().split('T')[0],
         notes: customer.notes || ''
       });
       setErrors({});
@@ -32,15 +53,30 @@ export default function EditCustomerModal({ customer, onClose, onUpdate }) {
 
   const validate = () => {
     const errs = {};
-    if (!formData.name.trim()) errs.name = 'Please enter customer name.';
-    const cleanMobile = formData.mobile.replace(/\D/g, '');
-    if (!formData.mobile.trim() || cleanMobile.length < 7 || cleanMobile.length > 15) {
-      errs.mobile = 'Please enter a valid mobile number.';
+    if (!formData.name || !String(formData.name).trim()) {
+      errs.name = 'Please enter customer name.';
     }
-    if (!formData.place.trim()) errs.place = 'Please enter place/address.';
-    if (!formData.billBook.trim()) errs.billBook = 'Please enter bill book number.';
-    if (!formData.pageNo.trim()) errs.pageNo = 'Please enter page number.';
-    if (!formData.date.trim()) errs.date = 'Please select a date.';
+
+    const cleanMobile = String(formData.mobile || '').replace(/\D/g, '');
+    if (!cleanMobile || cleanMobile.length < 7 || cleanMobile.length > 15) {
+      errs.mobile = 'Please enter a valid mobile number (7-15 digits).';
+    }
+
+    if (!formData.place || !String(formData.place).trim()) {
+      errs.place = 'Please enter place/address.';
+    }
+
+    if (!formData.billBook || !String(formData.billBook).trim()) {
+      errs.billBook = 'Please enter bill book number.';
+    }
+
+    if (!formData.pageNo || !String(formData.pageNo).trim()) {
+      errs.pageNo = 'Please enter page number.';
+    }
+
+    if (!formData.date || !String(formData.date).trim()) {
+      errs.date = 'Please select a date.';
+    }
 
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -58,10 +94,13 @@ export default function EditCustomerModal({ customer, onClose, onUpdate }) {
 
     setSaving(true);
     try {
-      await onUpdate(customer.id, formData);
+      const saveFn = onSave || onUpdate;
+      if (saveFn) {
+        await saveFn(customer.id, formData);
+      }
       onClose();
-    } catch {
-      // handled by parent
+    } catch (err) {
+      console.error('Update customer error:', err);
     } finally {
       setSaving(false);
     }
@@ -211,13 +250,13 @@ export default function EditCustomerModal({ customer, onClose, onUpdate }) {
           </div>
 
           <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
+            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving}>
               Cancel
             </button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
               {saving ? (
                 <>
-                  <i className="fa-solid fa-spinner fa-spin"></i> Saving...
+                  <i className="fa-solid fa-spinner fa-spin"></i> Saving Changes...
                 </>
               ) : (
                 <>

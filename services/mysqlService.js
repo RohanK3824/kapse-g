@@ -378,6 +378,19 @@ async function updateCustomer(id, data) {
     [updated.name, updated.mobile, updated.place, updated.billBook, updated.pageNo, updated.date, updated.notes, id]
   );
 
+  // If autoCloudSync is active, immediately sync update to Cloud
+  try {
+    const autoCloudSync = require('./autoCloudSync');
+    if (autoCloudSync && autoCloudSync.cloudPool) {
+      await autoCloudSync.cloudPool.query(
+        `UPDATE customers 
+         SET name = ?, mobile = ?, place = ?, bill_book = ?, page_no = ?, date = ?, notes = ? 
+         WHERE id = ?`,
+        [updated.name, updated.mobile, updated.place, updated.billBook, updated.pageNo, updated.date, updated.notes, id]
+      );
+    }
+  } catch (_) {}
+
   return { id, ...updated };
 }
 
