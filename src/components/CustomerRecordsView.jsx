@@ -180,6 +180,7 @@ export default function CustomerRecordsView({
                   <th className="sortable" onClick={() => handleSort('date')}>
                     Reg. Date <i className={getSortIcon('date')}></i>
                   </th>
+                  <th style={{ textAlign: 'center' }}>Bill</th>
                   <th style={{ textAlign: 'center' }}>Actions</th>
                 </tr>
               </thead>
@@ -200,6 +201,27 @@ export default function CustomerRecordsView({
                     <td><span className="bill-pill">{c.billBook}</span></td>
                     <td><span className="page-pill">{c.pageNo}</span></td>
                     <td>{c.date}</td>
+                    <td style={{ textAlign: 'center' }}>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-primary"
+                        onClick={() => onViewCustomer(c)}
+                        title="View Customer Bill Slip"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          padding: '0.25rem 0.65rem',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          borderRadius: '6px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <i className="fa-solid fa-file-invoice"></i>
+                        <span>View Bill</span>
+                      </button>
+                    </td>
                     <td>
                       <div className="action-buttons-group">
                         <button className="btn-action action-view" onClick={() => onViewCustomer(c)} title="View Slip">

@@ -97,7 +97,7 @@ export default function DashboardView({
                     <th>Bill Book</th>
                     <th>Page No</th>
                     <th>Reg. Date</th>
-                    <th>Measurements &amp; Notes</th>
+                    <th style={{ textAlign: 'center' }}>Bill</th>
                     <th style={{ textAlign: 'center' }}>Actions</th>
                   </tr>
                 </thead>
@@ -128,19 +128,26 @@ export default function DashboardView({
                       <td><span className="bill-pill">{c.billBook}</span></td>
                       <td><span className="page-pill">Page {c.pageNo}</span></td>
                       <td>{c.date}</td>
-                      <td style={{ maxWidth: '280px', color: '#475569', fontSize: '0.82rem' }}>
-                        {c.notes ? (
-                          <span title={c.notes} style={{
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden'
-                          }}>
-                            {c.notes}
-                          </span>
-                        ) : (
-                          <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>-</span>
-                        )}
+                      <td style={{ textAlign: 'center' }}>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-primary"
+                          onClick={() => onViewCustomer(c)}
+                          title="View Customer Bill Slip"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '0.25rem 0.65rem',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            borderRadius: '6px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <i className="fa-solid fa-file-invoice"></i>
+                          <span>View Bill</span>
+                        </button>
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         <div className="action-buttons-group">
