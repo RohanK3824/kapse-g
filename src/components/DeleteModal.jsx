@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
 
-export default function DeleteModal({ customer, onClose, onConfirmDelete }) {
+export default function DeleteModal({ customer, onClose, onConfirm, onConfirmDelete }) {
   const [deleting, setDeleting] = useState(false);
 
   if (!customer) return null;
 
   const handleConfirm = async () => {
+    const confirmFn = onConfirm || onConfirmDelete;
+    if (!confirmFn) return;
+
     setDeleting(true);
     try {
-      await onConfirmDelete(customer.id);
+      await confirmFn(customer.id);
       onClose();
-    } catch {
-      // handled by parent toast
+    } catch (err) {
+      console.error('Delete action failed:', err);
     } finally {
       setDeleting(false);
     }

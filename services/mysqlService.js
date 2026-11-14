@@ -133,6 +133,16 @@ async function initDatabase() {
     `;
     await pool.query(createSyncLogsSql);
 
+    // Create deleted_customers table for tracking deletions permanently
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS deleted_customers (
+          id VARCHAR(50) PRIMARY KEY,
+          deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `);
+    } catch (_) {}
+
     isConnected = true;
     lastConnectionError = null;
     console.log(`[MySQL] Connected successfully to database: ${DB_CONFIG.database}`);
@@ -379,7 +389,20 @@ async function deleteCustomer(id) {
   const existing = await getCustomerById(id);
   if (!existing) return null;
 
+  // 1. Delete from local customers table
   await p.query('DELETE FROM customers WHERE id = ?', [id]);
+
+  // 2. Add to deleted_customers table so it never resurrects
+  try {
+    await p.query('INSERT IGNORE INTO deleted_customers (id) VALUES (?)', [id]);
+  } catch (_) {}
+
+  // 3. Delete from TiDB Cloud too if autoCloudSync is active
+  try {
+    const autoCloudSync = require('./autoCloudSync');
+    await autoCloudSync.deleteFromCloud(id);
+  } catch (_) {}
+
   return existing;
 }
 

@@ -5,6 +5,7 @@
  * Runs continuously in background on Laptop:
  * - When user enters a customer from Mobile -> Automatically pulled into Laptop Local MySQL within seconds!
  * - When user enters a customer on Laptop -> Automatically pushed to Cloud!
+ * - When user deletes a customer -> Permanently deleted from BOTH Local MySQL & Cloud!
  * - 100% Automatic. Zero queries. Zero commands required from user.
  */
 
@@ -21,7 +22,7 @@ class AutoCloudSync {
     this.enabled = process.env.AUTO_SYNC_ENABLED !== 'false';
   }
 
-  init(localPool) {
+  async init(localPool) {
     this.localPool = localPool;
 
     const cloudHost = process.env.CLOUD_DB_HOST || 'gateway01.ap-northeast-1.prod.aws.tidbcloud.com';
@@ -46,6 +47,17 @@ class AutoCloudSync {
         dateStrings: true,
         ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: true }
       });
+
+      // Ensure deleted_customers table exists on TiDB Cloud
+      try {
+        await this.cloudPool.query(`
+          CREATE TABLE IF NOT EXISTS deleted_customers (
+            id VARCHAR(50) PRIMARY KEY,
+            deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+      } catch (_) {}
+
       console.log('[AutoCloudSync] TiDB Cloud synchronization bridge initialized.');
     } catch (err) {
       console.warn('[AutoCloudSync] Could not initialize cloud pool:', err.message);
@@ -75,17 +87,49 @@ class AutoCloudSync {
     }
   }
 
+  /**
+   * Permanently delete a customer from TiDB Cloud
+   */
+  async deleteFromCloud(id) {
+    if (!this.cloudPool) return;
+    try {
+      await this.cloudPool.query('DELETE FROM customers WHERE id = ?', [id]);
+      await this.cloudPool.query('INSERT IGNORE INTO deleted_customers (id) VALUES (?)', [id]);
+      console.log(`[AutoCloudSync] 🗑️ Deleted [${id}] permanently from TiDB Cloud`);
+    } catch (err) {
+      console.warn('[AutoCloudSync] Could not delete from cloud:', err.message);
+    }
+  }
+
   async syncNow(trigger = 'manual') {
     if (this.isSyncing || !this.cloudPool || !this.localPool) return;
     this.isSyncing = true;
 
     try {
-      // 1. Fetch Cloud customers
-      const [cloudRows] = await this.cloudPool.query('SELECT * FROM customers');
+      // 1. Synchronize deleted customers list between Local and Cloud
+      const [localDeleted] = await this.localPool.query('SELECT id FROM deleted_customers').catch(() => [[]]);
+      const [cloudDeleted] = await this.cloudPool.query('SELECT id FROM deleted_customers').catch(() => [[]]);
 
-      // 2. Insert any new/updated customers from Cloud into Laptop Local MySQL
+      const deletedIds = new Set([
+        ...localDeleted.map(r => r.id),
+        ...cloudDeleted.map(r => r.id)
+      ]);
+
+      // Ensure all deleted IDs are purged from both sides
+      for (const delId of deletedIds) {
+        await this.localPool.query('DELETE FROM customers WHERE id = ?', [delId]).catch(() => {});
+        await this.cloudPool.query('DELETE FROM customers WHERE id = ?', [delId]).catch(() => {});
+        await this.localPool.query('INSERT IGNORE INTO deleted_customers (id) VALUES (?)', [delId]).catch(() => {});
+        await this.cloudPool.query('INSERT IGNORE INTO deleted_customers (id) VALUES (?)', [delId]).catch(() => {});
+      }
+
+      // 2. Fetch Cloud customers (excluding deleted ones)
+      const [cloudRows] = await this.cloudPool.query('SELECT * FROM customers');
+      const activeCloudRows = cloudRows.filter(c => !deletedIds.has(c.id));
+
+      // 3. Insert any new/updated customers from Cloud into Laptop Local MySQL
       let newToLocalCount = 0;
-      for (const c of cloudRows) {
+      for (const c of activeCloudRows) {
         const formattedDate = c.date instanceof Date ? c.date.toISOString().split('T')[0] : c.date;
 
         const [res] = await this.localPool.query(
@@ -108,10 +152,12 @@ class AutoCloudSync {
         }
       }
 
-      // 3. Fetch Local customers to check if anything added locally on laptop needs to push to cloud
+      // 4. Fetch Local customers (excluding deleted ones) to push to cloud
       const [localRows] = await this.localPool.query('SELECT * FROM customers');
+      const activeLocalRows = localRows.filter(l => !deletedIds.has(l.id));
+
       let newToCloudCount = 0;
-      for (const l of localRows) {
+      for (const l of activeLocalRows) {
         const formattedDate = l.date instanceof Date ? l.date.toISOString().split('T')[0] : l.date;
 
         const [res] = await this.cloudPool.query(
@@ -138,7 +184,6 @@ class AutoCloudSync {
         console.log(`[AutoCloudSync] ✅ Sync Completed: ${newToLocalCount} mobile record(s) saved to laptop MySQL, ${newToCloudCount} laptop record(s) sent to cloud.`);
       }
     } catch (err) {
-      // Don't crash if network is temporarily lost
       if (trigger !== 'interval') {
         console.warn(`[AutoCloudSync] Sync notice: ${err.message}`);
       }
