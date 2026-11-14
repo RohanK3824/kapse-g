@@ -60,6 +60,11 @@ async function startServer() {
     console.log('Connecting to MySQL database...');
     await mysqlService.initDatabase();
 
+    // Start Live Auto-Sync (silently pulls mobile customer entries directly into Laptop Local MySQL)
+    const autoCloudSync = require('./services/autoCloudSync');
+    autoCloudSync.init(mysqlService.getPool());
+    autoCloudSync.start();
+
     app.listen(PORT, () => {
       console.log('==================================================');
       console.log(' ✂️  KAPSE - G 🔰 REACT + MYSQL MANAGEMENT SYSTEM  ✂️ ');

@@ -696,6 +696,7 @@ module.exports = {
   addSyncLog,
   getSyncLogs,
   getSyncSummary,
+  getPool: () => pool,
   getIsConnected: () => isConnected,
   getLastError: () => lastConnectionError
 };
