@@ -29,14 +29,37 @@ export default function ViewSlipModal({ customer, onClose, onEdit }) {
             </div>
 
             <div className="slip-grid">
+              {/* 1. Customer ID */}
               <div className="slip-field">
                 <span className="slip-label">Customer ID</span>
                 <span className="slip-value highlight">{customer.id}</span>
               </div>
+
+              {/* 2. Customer Name */}
+              <div className="slip-field">
+                <span className="slip-label">Customer Name</span>
+                <span className="slip-value">{customer.name}</span>
+              </div>
+
+              {/* 3. Mobile Number */}
+              <div className="slip-field">
+                <span className="slip-label">Mobile Number</span>
+                <span className="slip-value">{customer.mobile}</span>
+              </div>
+
+              {/* 4. Place / Address */}
+              <div className="slip-field">
+                <span className="slip-label">Place / Address</span>
+                <span className="slip-value">{customer.place}</span>
+              </div>
+
+              {/* 5. Registration Date */}
               <div className="slip-field">
                 <span className="slip-label">Registration Date</span>
                 <span className="slip-value">{customer.date}</span>
               </div>
+
+              {/* 6. Delivery Date */}
               <div className="slip-field">
                 <span className="slip-label">Delivery Date</span>
                 <span className="slip-value" style={{ color: '#0369a1', fontWeight: 700 }}>
@@ -48,20 +71,7 @@ export default function ViewSlipModal({ customer, onClose, onEdit }) {
                 </span>
               </div>
 
-              <div className="slip-field">
-                <span className="slip-label">Customer Name</span>
-                <span className="slip-value">{customer.name}</span>
-              </div>
-              <div className="slip-field">
-                <span className="slip-label">Mobile Number</span>
-                <span className="slip-value">{customer.mobile}</span>
-              </div>
-
-              <div className="slip-field full">
-                <span className="slip-label">Place / Address</span>
-                <span className="slip-value">{customer.place}</span>
-              </div>
-
+              {/* Physical Bill Book & Page Number */}
               <div className="slip-field">
                 <span className="slip-label">Physical Bill Book Number</span>
                 <span className="slip-value"><span className="book-tag-badge">{customer.billBook}</span></span>
