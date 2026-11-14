@@ -7,7 +7,6 @@ import DashboardView from './components/DashboardView';
 import AddCustomerView from './components/AddCustomerView';
 import CustomerRecordsView from './components/CustomerRecordsView';
 import SearchView from './components/SearchView';
-import SyncDashboardView from './components/SyncDashboardView';
 
 import ViewSlipModal from './components/ViewSlipModal';
 import EditCustomerModal from './components/EditCustomerModal';
@@ -27,8 +26,6 @@ export default function App() {
     todayDate: ''
   });
   const [dbStatus, setDbStatus] = useState(null);
-  const [syncStatus, setSyncStatus] = useState(null);
-  const [isSyncing, setIsSyncing] = useState(false);
 
   // Modals state
   const [viewCustomer, setViewCustomer] = useState(null);
@@ -50,14 +47,13 @@ export default function App() {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
-  // Fetch all data from MySQL & Sync Queue
+  // Fetch all data from MySQL
   const refreshData = useCallback(async () => {
     try {
-      const [statusRes, statsRes, custRes, syncRes] = await Promise.all([
+      const [statusRes, statsRes, custRes] = await Promise.all([
         api.getStatus().catch(() => ({ data: { connected: false } })),
         api.getStats().catch(() => ({ success: false, data: {} })),
-        api.getCustomers().catch(() => ({ success: false, data: [] })),
-        api.getSyncStatus().catch(() => ({ success: false, data: null }))
+        api.getCustomers().catch(() => ({ success: false, data: [] }))
       ]);
 
       if (statusRes.data) {
@@ -71,10 +67,6 @@ export default function App() {
       if (custRes.success && Array.isArray(custRes.data)) {
         setCustomers(custRes.data);
       }
-
-      if (syncRes.data) {
-        setSyncStatus(syncRes.data);
-      }
     } catch (err) {
       console.error('Error refreshing MySQL data:', err);
       addToast('Connection Error', 'Could not communicate with the backend.', 'error');
@@ -83,9 +75,6 @@ export default function App() {
 
   useEffect(() => {
     refreshData();
-    // Background polling for sync status every 15 seconds
-    const interval = setInterval(refreshData, 15000);
-    return () => clearInterval(interval);
   }, [refreshData]);
 
   // Global keyboard shortcuts
@@ -106,37 +95,12 @@ export default function App() {
     try {
       const res = await api.createCustomer(formData);
       if (res.success) {
-        if (res.isPendingSync) {
-          addToast(
-            'Stored in Temporary Queue',
-            `Saved ${res.data.name} (${res.data.id}) to Cloud Queue. It will sync automatically when your laptop is turned ON.`,
-            'warning'
-          );
-        } else {
-          addToast('Customer Registered', `Saved ${res.data.name} (${res.data.id}) to MySQL database.`, 'success');
-        }
+        addToast('Customer Registered', `Saved ${res.data.name} (${res.data.id}) to MySQL database.`, 'success');
         await refreshData();
       }
     } catch (err) {
       addToast('Registration Failed', err.message || 'Could not save to MySQL.', 'error');
       throw err;
-    }
-  };
-
-  const handleSyncNow = async () => {
-    setIsSyncing(true);
-    try {
-      const res = await api.triggerSyncNow();
-      if (res.success) {
-        addToast('Sync Complete', res.message || 'Records synchronized to MySQL database.', 'success');
-      } else {
-        addToast('Sync Update', res.message || 'Synchronization cycle completed.', 'info');
-      }
-      await refreshData();
-    } catch (err) {
-      addToast('Sync Notice', err.message || 'Could not synchronize records.', 'error');
-    } finally {
-      setIsSyncing(false);
     }
   };
 
@@ -170,9 +134,6 @@ export default function App() {
     api.exportExcel();
   };
 
-  const pendingSyncCount = syncStatus?.totalPendingRecords ?? customers.filter(c => c.isPendingSync || c.syncStatus === 'pending').length;
-  const isLaptopOnline = dbStatus?.connected ?? false;
-
   return (
     <div className="app-layout">
       {/* Sidebar */}
@@ -184,8 +145,6 @@ export default function App() {
         onClose={() => setSidebarOpen(false)}
         dbStatus={dbStatus}
         onExport={handleExport}
-        pendingSyncCount={pendingSyncCount}
-        syncStatus={syncStatus}
       />
 
       {/* Main Wrapper */}
@@ -198,10 +157,6 @@ export default function App() {
           onViewCustomer={setViewCustomer}
           onAddCustomer={() => setCurrentView('add-customer')}
           onExport={handleExport}
-          pendingSyncCount={pendingSyncCount}
-          onNavigateToSync={() => setCurrentView('sync')}
-          onSyncNow={handleSyncNow}
-          syncing={isSyncing}
         />
 
         {/* Content Views */}
@@ -215,16 +170,12 @@ export default function App() {
               onEditCustomer={setEditCustomer}
               onDeleteCustomer={setDeleteCustomer}
               dbStatus={dbStatus}
-              syncStatus={syncStatus}
-              onSyncNow={handleSyncNow}
-              syncing={isSyncing}
             />
           )}
 
           {currentView === 'add-customer' && (
             <AddCustomerView
               onAddCustomer={handleAddCustomer}
-              isLaptopOnline={isLaptopOnline}
             />
           )}
 
@@ -250,14 +201,6 @@ export default function App() {
               onExport={handleExport}
             />
           )}
-
-          {currentView === 'sync' && (
-            <SyncDashboardView
-              onNavigate={setCurrentView}
-              onViewCustomer={setViewCustomer}
-              addToast={addToast}
-            />
-          )}
         </main>
 
         {/* Footer */}
@@ -270,7 +213,7 @@ export default function App() {
           <div>
             <span style={{ color: '#0f2942', fontWeight: 500 }}>
               <i className="fa-solid fa-database" style={{ marginRight: '5px', color: '#0284c7' }}></i>
-              Database: <code>tailor_shop_db</code> (MySQL)
+              Database: <code>{dbStatus?.database || 'tailor_shop_db'}</code> ({dbStatus?.connected ? 'Online' : 'Offline'})
             </span>
           </div>
         </footer>
@@ -280,30 +223,36 @@ export default function App() {
       <ViewSlipModal
         customer={viewCustomer}
         onClose={() => setViewCustomer(null)}
-        onEdit={setEditCustomer}
+        onEdit={(c) => {
+          setViewCustomer(null);
+          setEditCustomer(c);
+        }}
+        onDelete={(c) => {
+          setViewCustomer(null);
+          setDeleteCustomer(c);
+        }}
       />
 
       <EditCustomerModal
         customer={editCustomer}
         onClose={() => setEditCustomer(null)}
-        onUpdate={handleUpdateCustomer}
+        onSave={handleUpdateCustomer}
       />
 
       <DeleteModal
         customer={deleteCustomer}
         onClose={() => setDeleteCustomer(null)}
-        onConfirmDelete={handleDeleteCustomer}
+        onConfirm={handleDeleteCustomer}
       />
 
-      {/* Toast Notifications */}
-      <ToastContainer toasts={toasts} onCloseToast={removeToast} />
+      {/* Toast Notification Stack */}
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
 
-      {/* Mobile Bottom Thumb Navigation */}
+      {/* Mobile Bottom Navigation Bar */}
       <MobileBottomNav
         currentView={currentView}
         setCurrentView={setCurrentView}
-        customerCount={customers.length}
-        pendingCount={pendingSyncCount}
+        customerCount={stats.totalCustomers || customers.length}
       />
     </div>
   );

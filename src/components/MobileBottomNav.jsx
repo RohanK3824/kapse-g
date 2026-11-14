@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function MobileBottomNav({ currentView, setCurrentView, customerCount, pendingCount = 0 }) {
+export default function MobileBottomNav({ currentView, setCurrentView, customerCount }) {
   return (
     <nav className="mobile-bottom-nav">
       <button
@@ -42,20 +42,6 @@ export default function MobileBottomNav({ currentView, setCurrentView, customerC
       >
         <i className="fa-solid fa-magnifying-glass"></i>
         <span>Search</span>
-      </button>
-
-      <button
-        type="button"
-        className={`mobile-nav-btn ${currentView === 'sync' ? 'active' : ''}`}
-        onClick={() => setCurrentView('sync')}
-      >
-        <div className="mobile-nav-icon-wrap">
-          <i className="fa-solid fa-arrows-rotate"></i>
-          {pendingCount > 0 && (
-            <span className="mobile-nav-badge" style={{ background: '#f59e0b' }}>{pendingCount}</span>
-          )}
-        </div>
-        <span>Sync</span>
       </button>
     </nav>
   );

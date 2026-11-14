@@ -6,11 +6,7 @@ export default function Topbar({
   customers,
   onViewCustomer,
   onAddCustomer,
-  onExport,
-  pendingSyncCount = 0,
-  onNavigateToSync = () => {},
-  onSyncNow = () => {},
-  syncing = false
+  onExport
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -27,15 +23,11 @@ export default function Topbar({
     },
     records: {
       title: 'Customer Records Directory',
-      sub: 'Complete database stored directly in MySQL (tailor_shop_db)'
+      sub: 'Complete database stored directly in MySQL'
     },
     search: {
       title: 'Instant Customer Search',
       sub: 'Quickly find customers by Name, Mobile, Bill Book, or Page No'
-    },
-    sync: {
-      title: 'Data Synchronization & Cloud Queue',
-      sub: 'Permanent Master: Laptop MySQL | Temporary Buffer: Cloud Queue'
     }
   };
 
@@ -79,7 +71,8 @@ export default function Topbar({
           <i className="fa-solid fa-magnifying-glass search-icon"></i>
           <input
             type="text"
-            placeholder="Quick search by Name, Mobile, Bill No... (Ctrl + K)"
+            className="search-input"
+            placeholder="Quick search by Name, Phone, Bill Book, Page..."
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
@@ -91,7 +84,7 @@ export default function Topbar({
           />
           {searchTerm && (
             <button
-              className="clear-search-btn"
+              className="search-clear-btn"
               onClick={() => {
                 setSearchTerm('');
                 setDropdownOpen(false);
@@ -102,16 +95,17 @@ export default function Topbar({
           )}
         </div>
 
+        {/* Live Dropdown Search Results */}
         {dropdownOpen && searchTerm.trim() && (
-          <div className="global-search-dropdown">
+          <div className="search-dropdown show">
             <div className="dropdown-header">
-              <span>Matching Customers</span>
-              <span className="results-count">{matches.length} found</span>
+              <span>Matching Customers ({matches.length})</span>
             </div>
-            <div className="dropdown-body">
+            <div className="dropdown-list">
               {matches.length === 0 ? (
-                <div style={{ padding: '1.5rem', textAlign: 'center', color: '#64748b', fontSize: '0.85rem' }}>
-                  No customer matching "<strong>{searchTerm}</strong>"
+                <div className="dropdown-empty">
+                  <i className="fa-solid fa-circle-info"></i>
+                  <span>No customer found matching "{searchTerm}"</span>
                 </div>
               ) : (
                 matches.map(c => (
@@ -149,24 +143,6 @@ export default function Topbar({
       </div>
 
       <div className="topbar-actions">
-        {/* Sync Status Button */}
-        <button
-          className={`btn btn-top-action ${pendingSyncCount > 0 ? 'btn-sync-pending' : 'btn-sync-synced'}`}
-          onClick={onNavigateToSync}
-          title={pendingSyncCount > 0 ? `${pendingSyncCount} record(s) waiting for laptop sync` : 'All records synced with MySQL'}
-          style={{
-            borderColor: pendingSyncCount > 0 ? '#f59e0b' : '#10b981',
-            color: pendingSyncCount > 0 ? '#b45309' : '#047857',
-            backgroundColor: pendingSyncCount > 0 ? '#fffbeb' : '#ecfdf5',
-            fontWeight: 600
-          }}
-        >
-          <i className={`fa-solid ${syncing ? 'fa-arrows-rotate fa-spin' : pendingSyncCount > 0 ? 'fa-hourglass-half' : 'fa-cloud-check'}`}></i>
-          <span className="btn-label">
-            {syncing ? 'Syncing...' : pendingSyncCount > 0 ? `${pendingSyncCount} Pending Sync` : 'Synced'}
-          </span>
-        </button>
-
         <button className="btn btn-outline btn-top-action" onClick={onExport} title="Download Excel Export">
           <i className="fa-solid fa-file-arrow-down"></i>
           <span className="btn-label">Export Excel</span>

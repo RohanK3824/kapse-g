@@ -7,14 +7,10 @@ export default function DashboardView({
   onViewCustomer,
   onEditCustomer,
   onDeleteCustomer,
-  dbStatus,
-  syncStatus,
-  onSyncNow,
-  syncing = false
+  dbStatus
 }) {
-  // Show latest 8-10 customers across the full-width dashboard
+  // Show latest 10 customers across the full-width dashboard
   const recentCustomers = customers.slice(0, 10);
-  const pendingCount = syncStatus?.totalPendingRecords || customers.filter(c => c.isPendingSync || c.syncStatus === 'pending').length;
 
   return (
     <div className="view-dashboard">
@@ -25,7 +21,7 @@ export default function DashboardView({
             <i className="fa-solid fa-triangle-exclamation" style={{ marginRight: '8px' }}></i>
             <strong>MySQL Connection Notice:</strong> {dbStatus.error || 'Could not connect to MySQL server.'}
             <span style={{ display: 'block', fontSize: '0.8rem', marginTop: '2px' }}>
-              Please ensure MySQL service is running and verify <code>DB_PASSWORD</code> in your <code>.env</code> file.
+              Please ensure database is active and verify connection credentials in environment variables.
             </span>
           </div>
         </div>
@@ -54,67 +50,54 @@ export default function DashboardView({
         </div>
       </div>
 
-      {/* Sync Status Overview Widget */}
-      <div className="dashboard-sync-widget" style={{
-        background: '#ffffff',
-        border: '1px solid #e2e8f0',
-        borderRadius: 'var(--radius-lg)',
-        padding: '1rem 1.25rem',
-        marginBottom: '1.5rem',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '1rem',
-        boxShadow: 'var(--shadow-sm)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.9rem' }}>
-          <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '10px',
-            background: pendingCount > 0 ? '#fffbeb' : '#f0f9ff',
-            color: pendingCount > 0 ? '#d97706' : '#0284c7',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '1.2rem',
-            border: `1px solid ${pendingCount > 0 ? '#fde68a' : '#bae6fd'}`
-          }}>
-            <i className={`fa-solid ${syncing ? 'fa-arrows-rotate fa-spin' : pendingCount > 0 ? 'fa-hourglass-half' : 'fa-cloud-check'}`}></i>
+      {/* Stat Cards Grid */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-icon-wrapper" style={{ background: '#f0fdf4', color: '#16a34a' }}>
+            <i className="fa-solid fa-users"></i>
           </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <strong style={{ color: '#0f2942', fontSize: '0.95rem' }}>Automatic Data Synchronization</strong>
-              <span className={`badge ${pendingCount > 0 ? 'badge-warning' : 'badge-success'}`}>
-                {pendingCount > 0 ? `${pendingCount} Pending Sync` : 'All Synced'}
-              </span>
-            </div>
-            <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>
-              Main Database: <strong>Laptop MySQL</strong> &bull; Temporary Queue: <strong>{pendingCount > 0 ? `${pendingCount} records waiting` : 'Clear'}</strong>
-              {syncStatus?.lastSyncTime && ` &bull; Last Sync: ${new Date(syncStatus.lastSyncTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
-            </p>
+          <div className="stat-info">
+            <span className="stat-label">TOTAL CUSTOMERS</span>
+            <div className="stat-number">{stats.totalCustomers || customers.length}</div>
+            <span className="stat-sub" style={{ color: '#16a34a' }}>
+              <i className="fa-solid fa-database"></i> Stored in MySQL
+            </span>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <button
-            className="btn btn-sm btn-primary"
-            onClick={onSyncNow}
-            disabled={syncing}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-          >
-            <i className={`fa-solid fa-arrows-rotate ${syncing ? 'fa-spin' : ''}`}></i>
-            <span>{syncing ? 'Syncing...' : 'Sync Now'}</span>
-          </button>
-          <button
-            className="btn btn-sm btn-outline"
-            onClick={() => onNavigate('sync')}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-          >
-            <i className="fa-solid fa-gauge"></i>
-            <span>Sync Dashboard</span>
-          </button>
+        <div className="stat-card">
+          <div className="stat-icon-wrapper" style={{ background: '#eff6ff', color: '#2563eb' }}>
+            <i className="fa-solid fa-calendar-day"></i>
+          </div>
+          <div className="stat-info">
+            <span className="stat-label">TODAY'S REGISTRATIONS</span>
+            <div className="stat-number">{stats.todayCustomers || 0}</div>
+            <span className="stat-sub" style={{ color: '#2563eb' }}>
+              {stats.todayDate || new Date().toISOString().split('T')[0]}
+            </span>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon-wrapper" style={{ background: '#faf5ff', color: '#9333ea' }}>
+            <i className="fa-solid fa-book-bookmark"></i>
+          </div>
+          <div className="stat-info">
+            <span className="stat-label">ACTIVE BILL BOOKS</span>
+            <div className="stat-number">{stats.totalBillBooks || 0}</div>
+            <span className="stat-sub">Unique registered books</span>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon-wrapper" style={{ background: '#ecfdf5', color: '#059669' }}>
+            <i className="fa-solid fa-map-location-dot"></i>
+          </div>
+          <div className="stat-info">
+            <span className="stat-label">TOWNS &amp; PLACES</span>
+            <div className="stat-number">{stats.totalPlaces || 0}</div>
+            <span className="stat-sub">Customer areas</span>
+          </div>
         </div>
       </div>
 
@@ -173,14 +156,7 @@ export default function DashboardView({
                   {recentCustomers.map(c => (
                     <tr key={c.id}>
                       <td>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                          <span className="cust-id-badge">{c.id}</span>
-                          {(c.isPendingSync || c.syncStatus === 'pending') && (
-                            <span className="badge badge-warning" style={{ fontSize: '0.65rem', padding: '2px 4px' }}>
-                              <i className="fa-solid fa-clock"></i> Pending Sync
-                            </span>
-                          )}
-                        </div>
+                        <span className="cust-id-badge">{c.id}</span>
                       </td>
                       <td>
                         <div className="cust-name-cell">
