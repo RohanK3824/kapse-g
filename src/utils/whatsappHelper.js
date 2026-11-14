@@ -36,7 +36,8 @@ ${deliverySection}─────────────────
 💵 *Payment Details:*
 ${paymentLines}
 ─────────────────
-${notesSection}📍 *Kapse Tailors, Vairag*
+${notesSection}*Gajanan Kapse*
+📍 *Kapse Tailors, Vairag*
 🙏 _Thank you for your visit!_`;
 }
 
