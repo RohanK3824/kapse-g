@@ -7,10 +7,14 @@ export default function DashboardView({
   onViewCustomer,
   onEditCustomer,
   onDeleteCustomer,
-  dbStatus
+  dbStatus,
+  syncStatus,
+  onSyncNow,
+  syncing = false
 }) {
   // Show latest 8-10 customers across the full-width dashboard
   const recentCustomers = customers.slice(0, 10);
+  const pendingCount = syncStatus?.totalPendingRecords || customers.filter(c => c.isPendingSync || c.syncStatus === 'pending').length;
 
   return (
     <div className="view-dashboard">
@@ -46,6 +50,70 @@ export default function DashboardView({
           </button>
           <button className="btn btn-navy-outline" onClick={() => onNavigate('search')}>
             <i className="fa-solid fa-magnifying-glass"></i> Search Records
+          </button>
+        </div>
+      </div>
+
+      {/* Sync Status Overview Widget */}
+      <div className="dashboard-sync-widget" style={{
+        background: '#ffffff',
+        border: '1px solid #e2e8f0',
+        borderRadius: 'var(--radius-lg)',
+        padding: '1rem 1.25rem',
+        marginBottom: '1.5rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        boxShadow: 'var(--shadow-sm)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.9rem' }}>
+          <div style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '10px',
+            background: pendingCount > 0 ? '#fffbeb' : '#f0f9ff',
+            color: pendingCount > 0 ? '#d97706' : '#0284c7',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '1.2rem',
+            border: `1px solid ${pendingCount > 0 ? '#fde68a' : '#bae6fd'}`
+          }}>
+            <i className={`fa-solid ${syncing ? 'fa-arrows-rotate fa-spin' : pendingCount > 0 ? 'fa-hourglass-half' : 'fa-cloud-check'}`}></i>
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <strong style={{ color: '#0f2942', fontSize: '0.95rem' }}>Automatic Data Synchronization</strong>
+              <span className={`badge ${pendingCount > 0 ? 'badge-warning' : 'badge-success'}`}>
+                {pendingCount > 0 ? `${pendingCount} Pending Sync` : 'All Synced'}
+              </span>
+            </div>
+            <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>
+              Main Database: <strong>Laptop MySQL</strong> &bull; Temporary Queue: <strong>{pendingCount > 0 ? `${pendingCount} records waiting` : 'Clear'}</strong>
+              {syncStatus?.lastSyncTime && ` &bull; Last Sync: ${new Date(syncStatus.lastSyncTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <button
+            className="btn btn-sm btn-primary"
+            onClick={onSyncNow}
+            disabled={syncing}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+          >
+            <i className={`fa-solid fa-arrows-rotate ${syncing ? 'fa-spin' : ''}`}></i>
+            <span>{syncing ? 'Syncing...' : 'Sync Now'}</span>
+          </button>
+          <button
+            className="btn btn-sm btn-outline"
+            onClick={() => onNavigate('sync')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+          >
+            <i className="fa-solid fa-gauge"></i>
+            <span>Sync Dashboard</span>
           </button>
         </div>
       </div>
@@ -104,7 +172,16 @@ export default function DashboardView({
                 <tbody>
                   {recentCustomers.map(c => (
                     <tr key={c.id}>
-                      <td><span className="cust-id-badge">{c.id}</span></td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                          <span className="cust-id-badge">{c.id}</span>
+                          {(c.isPendingSync || c.syncStatus === 'pending') && (
+                            <span className="badge badge-warning" style={{ fontSize: '0.65rem', padding: '2px 4px' }}>
+                              <i className="fa-solid fa-clock"></i> Pending Sync
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td>
                         <div className="cust-name-cell">
                           <span className="cell-avatar">{(c.name || 'C')[0].toUpperCase()}</span>

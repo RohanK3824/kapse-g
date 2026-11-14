@@ -3,7 +3,9 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const customerRoutes = require('./routes/customerRoutes');
+const syncRoutes = require('./routes/syncRoutes');
 const mysqlService = require('./services/mysqlService');
+const syncWorker = require('./services/syncWorker');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -15,6 +17,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // API routes
 app.use('/api', customerRoutes);
+app.use('/api/sync', syncRoutes);
 
 // Serve built React frontend in production (dist directory)
 const distPath = path.join(__dirname, 'dist');
@@ -60,6 +63,11 @@ async function startServer() {
     console.log('Connecting to MySQL database...');
     await mysqlService.initDatabase();
 
+    // Start Automatic Synchronization Engine (Sync Worker)
+    if (process.env.SYNC_ENABLED !== 'false') {
+      syncWorker.startSyncWorker();
+    }
+
     app.listen(PORT, () => {
       console.log('==================================================');
       console.log(' ✂️  TAILOR SHOP REACT + MYSQL MANAGEMENT SYSTEM  ✂️ ');
@@ -68,6 +76,7 @@ async function startServer() {
       console.log(`Database Host:  ${mysqlService.DB_CONFIG.host}:${mysqlService.DB_CONFIG.port}`);
       console.log(`Database Name:  ${mysqlService.DB_CONFIG.database}`);
       console.log(`Database User:  ${mysqlService.DB_CONFIG.user}`);
+      console.log(`Automatic Sync: ACTIVE (Interval: ${syncWorker.intervalSeconds}s, Provider: ${syncWorker.getStatus().provider.toUpperCase()})`);
       console.log('==================================================');
     });
   } catch (err) {

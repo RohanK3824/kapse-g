@@ -6,7 +6,11 @@ export default function Topbar({
   customers,
   onViewCustomer,
   onAddCustomer,
-  onExport
+  onExport,
+  pendingSyncCount = 0,
+  onNavigateToSync = () => {},
+  onSyncNow = () => {},
+  syncing = false
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -28,6 +32,10 @@ export default function Topbar({
     search: {
       title: 'Instant Customer Search',
       sub: 'Quickly find customers by Name, Mobile, Bill Book, or Page No'
+    },
+    sync: {
+      title: 'Data Synchronization & Cloud Queue',
+      sub: 'Permanent Master: Laptop MySQL | Temporary Buffer: Cloud Queue'
     }
   };
 
@@ -141,6 +149,24 @@ export default function Topbar({
       </div>
 
       <div className="topbar-actions">
+        {/* Sync Status Button */}
+        <button
+          className={`btn btn-top-action ${pendingSyncCount > 0 ? 'btn-sync-pending' : 'btn-sync-synced'}`}
+          onClick={onNavigateToSync}
+          title={pendingSyncCount > 0 ? `${pendingSyncCount} record(s) waiting for laptop sync` : 'All records synced with MySQL'}
+          style={{
+            borderColor: pendingSyncCount > 0 ? '#f59e0b' : '#10b981',
+            color: pendingSyncCount > 0 ? '#b45309' : '#047857',
+            backgroundColor: pendingSyncCount > 0 ? '#fffbeb' : '#ecfdf5',
+            fontWeight: 600
+          }}
+        >
+          <i className={`fa-solid ${syncing ? 'fa-arrows-rotate fa-spin' : pendingSyncCount > 0 ? 'fa-hourglass-half' : 'fa-cloud-check'}`}></i>
+          <span className="btn-label">
+            {syncing ? 'Syncing...' : pendingSyncCount > 0 ? `${pendingSyncCount} Pending Sync` : 'Synced'}
+          </span>
+        </button>
+
         <button className="btn btn-outline btn-top-action" onClick={onExport} title="Download Excel Export">
           <i className="fa-solid fa-file-arrow-down"></i>
           <span className="btn-label">Export Excel</span>

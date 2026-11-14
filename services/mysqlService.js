@@ -74,6 +74,39 @@ async function initDatabase() {
       await pool.query('ALTER TABLE customers ADD INDEX idx_place (place)');
     } catch (_) {}
 
+    // Safe Schema Upgrades for Automatic Synchronization & Cross-Device Data Entry
+    try {
+      await pool.query('ALTER TABLE customers MODIFY id VARCHAR(50)');
+    } catch (_) {}
+    try {
+      await pool.query("ALTER TABLE customers ADD COLUMN sync_status VARCHAR(20) DEFAULT 'synced'");
+    } catch (_) {}
+    try {
+      await pool.query('ALTER TABLE customers ADD COLUMN synced_at TIMESTAMP NULL');
+    } catch (_) {}
+    try {
+      await pool.query("ALTER TABLE customers ADD COLUMN device_source VARCHAR(100) DEFAULT 'local'");
+    } catch (_) {}
+    try {
+      await pool.query('ALTER TABLE customers ADD COLUMN temp_sync_id VARCHAR(100) NULL');
+    } catch (_) {}
+    try {
+      await pool.query('ALTER TABLE customers ADD INDEX idx_temp_sync_id (temp_sync_id)');
+    } catch (_) {}
+
+    // Create sync_logs table for audit trail and sync status history
+    const createSyncLogsSql = `
+      CREATE TABLE IF NOT EXISTS sync_logs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        sync_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        status VARCHAR(20) NOT NULL,
+        records_synced INT DEFAULT 0,
+        details TEXT,
+        device_source VARCHAR(100) DEFAULT NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `;
+    await pool.query(createSyncLogsSql);
+
     isConnected = true;
     lastConnectionError = null;
     console.log(`[MySQL] Connected successfully to database: ${DB_CONFIG.database}`);
@@ -196,7 +229,11 @@ async function getAllCustomers(options = {}) {
 
   let sql = `
     SELECT id, name, mobile, place, bill_book AS billBook, page_no AS pageNo, 
-           DATE_FORMAT(date, '%Y-%m-%d') AS date, notes, created_at, updated_at
+           DATE_FORMAT(date, '%Y-%m-%d') AS date, notes, created_at, updated_at,
+           COALESCE(sync_status, 'synced') AS syncStatus,
+           DATE_FORMAT(synced_at, '%Y-%m-%d %H:%i:%s') AS syncedAt,
+           COALESCE(device_source, 'local') AS deviceSource,
+           temp_sync_id AS tempSyncId
     FROM customers
   `;
   const params = [];
@@ -241,7 +278,11 @@ async function getCustomerById(id) {
   const p = ensurePool();
   const [rows] = await p.query(
     `SELECT id, name, mobile, place, bill_book AS billBook, page_no AS pageNo, 
-            DATE_FORMAT(date, '%Y-%m-%d') AS date, notes, created_at, updated_at
+            DATE_FORMAT(date, '%Y-%m-%d') AS date, notes, created_at, updated_at,
+            COALESCE(sync_status, 'synced') AS syncStatus,
+            DATE_FORMAT(synced_at, '%Y-%m-%d %H:%i:%s') AS syncedAt,
+            COALESCE(device_source, 'local') AS deviceSource,
+            temp_sync_id AS tempSyncId
      FROM customers WHERE id = ?`,
     [id]
   );
@@ -388,6 +429,194 @@ async function exportToExcel() {
 }
 
 /**
+ * Transactional & Idempotent Insertion for Synchronized Customer Records
+ * Guarantees:
+ * 1. Checks if temp_sync_id or id already exists.
+ * 2. Checks if identical record (name, mobile, bill_book, page_no) exists.
+ * 3. Never overwrites existing customer records.
+ * 4. Inserts with sync_status='synced', synced_at=NOW(), device_source.
+ */
+async function insertSyncedCustomer(data) {
+  const p = ensurePool();
+  const conn = await p.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const tempSyncId = data.temp_sync_id || data.tempSyncId || null;
+    let targetId = data.id;
+
+    // 1. Check if record with this temp_sync_id already exists in MySQL
+    if (tempSyncId) {
+      const [existingBySyncId] = await conn.query(
+        'SELECT id, name, mobile, place, bill_book AS billBook, page_no AS pageNo FROM customers WHERE temp_sync_id = ?',
+        [tempSyncId]
+      );
+      if (existingBySyncId.length > 0) {
+        await conn.commit();
+        return {
+          duplicate: true,
+          action: 'skipped',
+          reason: 'Record with matching temporary sync ID was already synced previously',
+          customer: existingBySyncId[0]
+        };
+      }
+    }
+
+    // 2. Check if a record with the exact same ID already exists
+    if (targetId) {
+      const [existingById] = await conn.query(
+        'SELECT id, name, mobile, place, bill_book AS billBook, page_no AS pageNo FROM customers WHERE id = ?',
+        [targetId]
+      );
+      if (existingById.length > 0) {
+        // If an ID exists with different temp_sync_id or no sync id, generate a fresh non-colliding ID
+        targetId = await generateNextId();
+      }
+    } else {
+      targetId = await generateNextId();
+    }
+
+    // 3. Check for exact duplicate customer entry (same name, mobile, bill_book, page_no)
+    const billBook = String(data.billBook || data.bill_book || '').trim();
+    const pageNo = String(data.pageNo || data.page_no || '').trim();
+    const cleanMobile = String(data.mobile || '').trim();
+    const cleanName = String(data.name || '').trim();
+
+    const [existingByContent] = await conn.query(
+      'SELECT id, name, mobile, place, bill_book AS billBook, page_no AS pageNo FROM customers WHERE name = ? AND mobile = ? AND bill_book = ? AND page_no = ?',
+      [cleanName, cleanMobile, billBook, pageNo]
+    );
+    if (existingByContent.length > 0) {
+      await conn.commit();
+      return {
+        duplicate: true,
+        action: 'skipped',
+        reason: 'Duplicate prevented: Customer with identical name, mobile, bill book and page number already exists in MySQL',
+        customer: existingByContent[0]
+      };
+    }
+
+    // 4. Safely insert into MySQL customers table
+    const dateStr = data.date || new Date().toISOString().split('T')[0];
+    const deviceSource = data.device_source || data.deviceSource || 'remote_device';
+    const notes = String(data.notes || '').trim();
+
+    await conn.query(
+      `INSERT INTO customers 
+       (id, name, mobile, place, bill_book, page_no, date, notes, sync_status, synced_at, device_source, temp_sync_id) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'synced', NOW(), ?, ?)`,
+      [
+        targetId,
+        cleanName,
+        cleanMobile,
+        String(data.place || '').trim(),
+        billBook,
+        pageNo,
+        dateStr,
+        notes,
+        deviceSource,
+        tempSyncId
+      ]
+    );
+
+    await conn.commit();
+
+    return {
+      duplicate: false,
+      action: 'inserted',
+      customer: {
+        id: targetId,
+        name: cleanName,
+        mobile: cleanMobile,
+        place: data.place,
+        billBook,
+        pageNo,
+        date: dateStr,
+        notes,
+        syncStatus: 'synced',
+        deviceSource,
+        tempSyncId
+      }
+    };
+  } catch (error) {
+    await conn.rollback();
+    throw error;
+  } finally {
+    conn.release();
+  }
+}
+
+/**
+ * Add an entry to the sync audit logs table
+ */
+async function addSyncLog(status, recordsSynced, details, deviceSource = 'system') {
+  try {
+    const p = ensurePool();
+    await p.query(
+      'INSERT INTO sync_logs (status, records_synced, details, device_source) VALUES (?, ?, ?, ?)',
+      [status, recordsSynced, details, deviceSource]
+    );
+  } catch (err) {
+    console.error('Failed to write sync log:', err.message);
+  }
+}
+
+/**
+ * Retrieve recent sync logs
+ */
+async function getSyncLogs(limit = 25) {
+  try {
+    const p = ensurePool();
+    const [rows] = await p.query(
+      `SELECT id, 
+              DATE_FORMAT(sync_time, '%Y-%m-%d %H:%i:%s') AS syncTime, 
+              status, 
+              records_synced AS recordsSynced, 
+              details, 
+              device_source AS deviceSource 
+       FROM sync_logs 
+       ORDER BY id DESC 
+       LIMIT ?`,
+      [Number(limit) || 25]
+    );
+    return rows;
+  } catch (err) {
+    console.error('Failed to fetch sync logs:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Get sync summary metrics from MySQL
+ */
+async function getSyncSummary() {
+  try {
+    const p = ensurePool();
+    const [totalRows] = await p.query('SELECT COUNT(*) AS total FROM customers');
+    const [syncedRows] = await p.query("SELECT COUNT(*) AS totalSynced FROM customers WHERE temp_sync_id IS NOT NULL OR sync_status = 'synced'");
+    const [lastSyncRows] = await p.query(
+      "SELECT DATE_FORMAT(MAX(synced_at), '%Y-%m-%d %H:%i:%s') AS lastSyncedAt FROM customers WHERE synced_at IS NOT NULL"
+    );
+    const [logCountRows] = await p.query('SELECT COUNT(*) AS totalLogs FROM sync_logs');
+
+    return {
+      totalPermanentRecords: totalRows[0]?.total || 0,
+      totalSyncedFromRemote: syncedRows[0]?.totalSynced || 0,
+      lastSyncedAt: lastSyncRows[0]?.lastSyncedAt || null,
+      totalAuditLogs: logCountRows[0]?.totalLogs || 0
+    };
+  } catch (err) {
+    return {
+      totalPermanentRecords: 0,
+      totalSyncedFromRemote: 0,
+      lastSyncedAt: null,
+      totalAuditLogs: 0,
+      error: err.message
+    };
+  }
+}
+
+/**
  * Get comprehensive database health & status
  */
 async function getDatabaseHealth() {
@@ -437,6 +666,10 @@ module.exports = {
   getStatistics,
   exportToExcel,
   getDatabaseHealth,
+  insertSyncedCustomer,
+  addSyncLog,
+  getSyncLogs,
+  getSyncSummary,
   getIsConnected: () => isConnected,
   getLastError: () => lastConnectionError
 };

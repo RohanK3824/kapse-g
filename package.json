@@ -13,6 +13,7 @@
     "db:check": "node manage_db.js check",
     "db:backup": "node manage_db.js backup",
     "db:optimize": "node manage_db.js optimize",
+    "sync:test": "node test_sync.js",
     "seed": "node seed.js"
   },
   "keywords": [],

@@ -7,7 +7,9 @@ export default function Sidebar({
   isOpen,
   onClose,
   dbStatus,
-  onExport
+  onExport,
+  pendingSyncCount = 0,
+  syncStatus = null
 }) {
   return (
     <>
@@ -70,6 +72,24 @@ export default function Sidebar({
                 <span>Search Customer</span>
               </a>
             </li>
+            <li className="nav-item">
+              <a
+                className={`nav-link ${currentView === 'sync' ? 'active' : ''}`}
+                onClick={() => { setCurrentView('sync'); onClose(); }}
+              >
+                <i className="fa-solid fa-arrows-rotate"></i>
+                <span>Data Sync</span>
+                {pendingSyncCount > 0 ? (
+                  <span className="nav-badge" style={{ background: '#f59e0b', color: '#fff' }}>
+                    {pendingSyncCount} Pending
+                  </span>
+                ) : (
+                  <span className="nav-badge" style={{ background: '#10b981', color: '#fff' }}>
+                    Synced
+                  </span>
+                )}
+              </a>
+            </li>
           </ul>
 
           <div className="nav-section-label">DATA & EXPORT</div>
@@ -95,8 +115,16 @@ export default function Sidebar({
               <i className="fa-solid fa-database"></i> {dbStatus?.database || 'tailor_shop_db'}
             </p>
             <small className="db-info">
-              {dbStatus?.connected ? `InnoDB / utf8mb4 (${totalCustomers} Records)` : 'Check .env credentials'}
+              {dbStatus?.connected ? `InnoDB / Master (${totalCustomers} Records)` : 'Check .env credentials'}
             </small>
+            <div style={{ marginTop: '0.4rem', paddingTop: '0.4rem', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: '0.72rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>
+                <i className="fa-solid fa-cloud" style={{ color: '#38bdf8', marginRight: '4px' }}></i> Cloud Sync Queue:
+              </span>
+              <strong style={{ color: pendingSyncCount > 0 ? '#f59e0b' : '#10b981' }}>
+                {pendingSyncCount > 0 ? `${pendingSyncCount} Pending` : 'All Synced'}
+              </strong>
+            </div>
           </div>
         </div>
       </aside>

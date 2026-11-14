@@ -10,6 +10,7 @@ export default function CustomerRecordsView({
   onExport
 }) {
   const [filterText, setFilterText] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'pending' | 'synced'
   const [sortField, setSortField] = useState('id');
   const [sortOrder, setSortOrder] = useState('desc');
   const [pageSize, setPageSize] = useState(25);
@@ -17,9 +18,17 @@ export default function CustomerRecordsView({
 
   // Filter
   const filteredCustomers = useMemo(() => {
-    if (!filterText.trim()) return customers;
+    let list = customers;
+
+    if (statusFilter === 'pending') {
+      list = list.filter(c => c.isPendingSync || c.syncStatus === 'pending');
+    } else if (statusFilter === 'synced') {
+      list = list.filter(c => !c.isPendingSync && c.syncStatus !== 'pending');
+    }
+
+    if (!filterText.trim()) return list;
     const term = filterText.toLowerCase();
-    return customers.filter(c =>
+    return list.filter(c =>
       c.name?.toLowerCase().includes(term) ||
       c.mobile?.toLowerCase().includes(term) ||
       c.billBook?.toLowerCase().includes(term) ||
@@ -28,7 +37,7 @@ export default function CustomerRecordsView({
       c.id?.toLowerCase().includes(term) ||
       c.notes?.toLowerCase().includes(term)
     );
-  }, [customers, filterText]);
+  }, [customers, filterText, statusFilter]);
 
   // Sort
   const sortedCustomers = useMemo(() => {
@@ -92,6 +101,21 @@ export default function CustomerRecordsView({
               </button>
             )}
           </div>
+
+          <select
+            className="form-control"
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            style={{ width: 'auto', padding: '0.35rem 0.65rem', fontSize: '0.82rem', height: '36px' }}
+          >
+            <option value="all">All Records ({customers.length})</option>
+            <option value="pending">Pending Sync ({customers.filter(c => c.isPendingSync || c.syncStatus === 'pending').length})</option>
+            <option value="synced">Synced in MySQL ({customers.filter(c => !c.isPendingSync && c.syncStatus !== 'pending').length})</option>
+          </select>
+
           {filterText.trim() && (
             <span className="badge badge-accent">
               {filteredCustomers.length} of {customers.length} matches
@@ -185,7 +209,20 @@ export default function CustomerRecordsView({
               <tbody>
                 {currentSlice.map(c => (
                   <tr key={c.id}>
-                    <td><span className="cust-id-badge">{c.id}</span></td>
+                    <td>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        <span className="cust-id-badge">{c.id}</span>
+                        {(c.isPendingSync || c.syncStatus === 'pending') ? (
+                          <span className="badge badge-warning" style={{ fontSize: '0.65rem', padding: '2px 4px' }}>
+                            <i className="fa-solid fa-clock"></i> Pending Sync
+                          </span>
+                        ) : (
+                          <span className="badge badge-success" style={{ fontSize: '0.65rem', padding: '2px 4px', background: '#ecfdf5', color: '#047857' }}>
+                            <i className="fa-solid fa-check"></i> Synced
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td>
                       <div className="cust-name-cell">
                         <span className="cell-avatar">{(c.name || 'C')[0].toUpperCase()}</span>

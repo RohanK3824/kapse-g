@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function AddCustomerView({ onAddCustomer }) {
+export default function AddCustomerView({ onAddCustomer, isLaptopOnline = true }) {
   const getTodayDate = () => new Date().toISOString().split('T')[0];
 
   const initialForm = {
@@ -90,16 +90,42 @@ export default function AddCustomerView({ onAddCustomer }) {
             <div>
               <h3>Customer Registration Form</h3>
               <p className="card-subtitle">
-                Fill in all required customer details. Information is stored directly in MySQL.
+                {isLaptopOnline 
+                  ? 'Fill in all required customer details. Information is stored directly in MySQL.' 
+                  : 'Laptop is offline. Details will be saved in the Temporary Cloud Queue and synced automatically when laptop is turned on.'}
               </p>
             </div>
           </div>
           <div className="form-header-badge">
-            <span className="badge badge-mysql">
-              <i className="fa-solid fa-database"></i> MySQL DB
-            </span>
+            {isLaptopOnline ? (
+              <span className="badge badge-mysql">
+                <i className="fa-solid fa-database"></i> MySQL DB
+              </span>
+            ) : (
+              <span className="badge badge-warning">
+                <i className="fa-solid fa-cloud-arrow-up"></i> Cloud Queue
+              </span>
+            )}
           </div>
         </div>
+
+        {!isLaptopOnline && (
+          <div style={{
+            background: '#fffbeb',
+            borderBottom: '1px solid #fde68a',
+            padding: '0.75rem 1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.65rem',
+            color: '#b45309',
+            fontSize: '0.85rem'
+          }}>
+            <i className="fa-solid fa-cloud-arrow-up" style={{ fontSize: '1.1rem' }}></i>
+            <div>
+              <strong>Remote Data Entry Active:</strong> Customer records added on this device will be queued securely in temporary cloud storage and automatically inserted into your laptop's MySQL database as soon as the laptop is switched ON.
+            </div>
+          </div>
+        )}
 
         <div className="card-body">
           <form onSubmit={handleSubmit} noValidate>

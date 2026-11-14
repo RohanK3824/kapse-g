@@ -1,0 +1,14 @@
+{
+  "name": "tailor-cloud-sync-relay",
+  "version": "1.0.0",
+  "description": "Secure Temporary Cloud Storage Queue for Kapse - G Tailor Shop Management System",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  }
+}
