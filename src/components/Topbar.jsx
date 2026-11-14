@@ -19,11 +19,11 @@ export default function Topbar({
     },
     'add-customer': {
       title: 'Register New Customer',
-      sub: 'Save customer measurements reference to MySQL database'
+      sub: 'Save customer measurements, billing details and registry'
     },
     records: {
       title: 'Customer Records Directory',
-      sub: 'Complete database stored directly in MySQL'
+      sub: 'Complete customer registry and records'
     },
     search: {
       title: 'Instant Customer Search',

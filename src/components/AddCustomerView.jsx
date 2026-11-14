@@ -102,13 +102,13 @@ export default function AddCustomerView({ onAddCustomer }) {
             <div>
               <h3>Customer Registration Form</h3>
               <p className="card-subtitle">
-                Fill in all required customer details. Information is stored directly in MySQL database.
+                Fill in all required customer details and measurements.
               </p>
             </div>
           </div>
           <div className="form-header-badge">
-            <span className="badge badge-mysql">
-              <i className="fa-solid fa-database"></i> MySQL DB
+            <span className="badge badge-success">
+              <i className="fa-solid fa-circle-check"></i> System Active
             </span>
           </div>
         </div>
@@ -359,11 +359,11 @@ export default function AddCustomerView({ onAddCustomer }) {
               <button type="submit" className="btn btn-primary" disabled={submitting}>
                 {submitting ? (
                   <>
-                    <i className="fa-solid fa-spinner fa-spin"></i> Saving to MySQL...
+                    <i className="fa-solid fa-spinner fa-spin"></i> Saving Customer...
                   </>
                 ) : (
                   <>
-                    <i className="fa-solid fa-check"></i> Save Customer to MySQL
+                    <i className="fa-solid fa-check"></i> Save Customer
                   </>
                 )}
               </button>
@@ -376,7 +376,7 @@ export default function AddCustomerView({ onAddCustomer }) {
         <h4><i className="fa-solid fa-lightbulb"></i> Tailor Shop Workflow Notes</h4>
         <ul>
           <li><strong>Bill Book &amp; Page Registry:</strong> Keeping physical references allows instant physical lookups when customers return for trials or alterations.</li>
-          <li><strong>MySQL Persistence:</strong> All data is permanently stored in MySQL tables, fully indexed for high performance.</li>
+          <li><strong>Permanent Storage:</strong> All customer records and bills are permanently and safely saved.</li>
           <li><strong>Unique IDs:</strong> Each customer receives an auto-generated unique identifier (e.g. <code>CUST-1001</code>).</li>
         </ul>
       </div>

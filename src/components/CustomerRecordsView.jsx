@@ -119,7 +119,7 @@ export default function CustomerRecordsView({
               <option value={100}>100</option>
             </select>
           </div>
-          <button className="btn btn-outline btn-sm" onClick={onRefresh} title="Refresh records from MySQL">
+          <button className="btn btn-outline btn-sm" onClick={onRefresh} title="Refresh customer records">
             <i className="fa-solid fa-arrows-rotate"></i> Refresh
           </button>
           <button className="btn btn-success btn-sm" onClick={onExport} title="Download Excel export">
@@ -143,7 +143,7 @@ export default function CustomerRecordsView({
             <p>
               {filterText.trim()
                 ? `No customer matches "${filterText}". Try clearing your filter.`
-                : 'The MySQL customer database is currently empty.'}
+                : 'The customer record list is currently empty.'}
             </p>
             {filterText.trim() ? (
               <button className="btn btn-outline btn-sm" onClick={() => setFilterText('')}>

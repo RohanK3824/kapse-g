@@ -15,14 +15,14 @@ export default function DashboardView({
 
   return (
     <div className="view-dashboard">
-      {/* Database Warning if MySQL is disconnected */}
+      {/* Connection Warning if server is disconnected */}
       {dbStatus && !dbStatus.connected && (
         <div className="db-alert-banner">
           <div>
             <i className="fa-solid fa-triangle-exclamation" style={{ marginRight: '8px' }}></i>
-            <strong>MySQL Connection Notice:</strong> {dbStatus.error || 'Could not connect to MySQL server.'}
+            <strong>Connection Notice:</strong> {dbStatus.error || 'Could not connect to server.'}
             <span style={{ display: 'block', fontSize: '0.8rem', marginTop: '2px' }}>
-              Please ensure database is active and verify connection credentials in environment variables.
+              Please check connection settings or restart the system.
             </span>
           </div>
         </div>
@@ -37,7 +37,7 @@ export default function DashboardView({
           <div className="banner-text">
             <h3>Kapse - G 🔰 Fitting &amp; Bill Book Registry</h3>
             <p>
-              Register Kapse - G tailor shop customers with exact physical Bill Book numbers and Page Numbers stored securely in MySQL.
+              Register Kapse - G tailor shop customers with exact physical Bill Book numbers, Page Numbers, and billing details.
             </p>
           </div>
         </div>

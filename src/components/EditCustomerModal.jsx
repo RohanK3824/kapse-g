@@ -158,7 +158,7 @@ export default function EditCustomerModal({ customer, onClose, onSave, onUpdate 
             </div>
             <div>
               <h3>Edit Customer Information</h3>
-              <span className="card-subtitle">Updating record in MySQL</span>
+              <span className="card-subtitle">Update customer details and bill</span>
             </div>
           </div>
           <button className="modal-close-btn" onClick={onClose} title="Close">
@@ -413,7 +413,7 @@ export default function EditCustomerModal({ customer, onClose, onSave, onUpdate 
                 </>
               ) : (
                 <>
-                  <i className="fa-solid fa-floppy-disk"></i> Save Changes to MySQL
+                  <i className="fa-solid fa-floppy-disk"></i> Save Changes
                 </>
               )}
             </button>

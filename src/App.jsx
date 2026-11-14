@@ -95,11 +95,11 @@ export default function App() {
     try {
       const res = await api.createCustomer(formData);
       if (res.success) {
-        addToast('Customer Registered', `Saved ${res.data.name} (${res.data.id}) to MySQL database.`, 'success');
+        addToast('Customer Registered', `Saved ${res.data.name} (${res.data.id}) successfully.`, 'success');
         await refreshData();
       }
     } catch (err) {
-      addToast('Registration Failed', err.message || 'Could not save to MySQL.', 'error');
+      addToast('Registration Failed', err.message || 'Could not save customer record.', 'error');
       throw err;
     }
   };
@@ -108,11 +108,11 @@ export default function App() {
     try {
       const res = await api.updateCustomer(id, formData);
       if (res.success) {
-        addToast('Updated', `Customer ${res.data.name} updated successfully in MySQL.`, 'success');
+        addToast('Updated', `Customer ${res.data.name} updated successfully.`, 'success');
         await refreshData();
       }
     } catch (err) {
-      addToast('Update Failed', err.message || 'Failed to update customer in MySQL.', 'error');
+      addToast('Update Failed', err.message || 'Failed to update customer record.', 'error');
       throw err;
     }
   };
@@ -121,7 +121,7 @@ export default function App() {
     try {
       const res = await api.deleteCustomer(id);
       if (res.success) {
-        addToast('Deleted', `Customer ${res.data.name} removed from MySQL database.`, 'info');
+        addToast('Deleted', `Customer ${res.data.name} removed successfully.`, 'info');
         await refreshData();
       }
     } catch (err) {
@@ -207,13 +207,11 @@ export default function App() {
         <footer className="app-footer">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <span>Kapse - G 🔰 Tailor Shop Customer Management System &copy; 2026</span>
-            <span>&bull;</span>
-            <span>Engineered with React &amp; MySQL</span>
           </div>
           <div>
-            <span style={{ color: '#0f2942', fontWeight: 500 }}>
-              <i className="fa-solid fa-database" style={{ marginRight: '5px', color: '#0284c7' }}></i>
-              Database: <code>{dbStatus?.database || 'tailor_shop_db'}</code> ({dbStatus?.connected ? 'Online' : 'Offline'})
+            <span style={{ color: '#0f2942', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <span className={`status-indicator ${dbStatus?.connected ? 'online' : 'offline'}`} style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: dbStatus?.connected ? '#16a34a' : '#dc2626', display: 'inline-block' }}></span>
+              System: {dbStatus?.connected ? 'Online & Secured' : 'Offline'}
             </span>
           </div>
         </footer>

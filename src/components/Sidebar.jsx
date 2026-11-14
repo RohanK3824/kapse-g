@@ -88,14 +88,14 @@ export default function Sidebar({
             <div className="db-status-header">
               <span className={`status-indicator ${dbStatus?.connected ? 'online' : 'offline'}`}></span>
               <span className="status-title">
-                {dbStatus?.connected ? 'MySQL Connected' : 'MySQL Offline'}
+                {dbStatus?.connected ? 'System Online' : 'System Offline'}
               </span>
             </div>
             <p className="db-file-name">
-              <i className="fa-solid fa-database"></i> {dbStatus?.database || 'tailor_shop_db'}
+              <i className="fa-solid fa-shield-halved"></i> Live &amp; Secured
             </p>
             <small className="db-info">
-              {dbStatus?.connected ? `Live Database (${totalCustomers} Records)` : 'Check database settings'}
+              {dbStatus?.connected ? `Active Records: ${totalCustomers}` : 'Connection check required'}
             </small>
           </div>
         </div>

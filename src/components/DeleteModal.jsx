@@ -40,7 +40,7 @@ export default function DeleteModal({ customer, onClose, onConfirm, onConfirmDel
             Are you sure you want to delete customer <strong>{customer.name}</strong> ({customer.id})?
           </p>
           <p style={{ fontSize: '0.82rem', color: '#64748b' }}>
-            This customer will be permanently removed from the MySQL database (<code>tailor_shop_db</code>). This action cannot be undone.
+            This customer will be permanently removed from the records. This action cannot be undone.
           </p>
         </div>
 
