@@ -1238,6 +1238,37 @@ textarea.form-control {
   color: var(--danger);
 }
 
+.btn-action.action-whatsapp {
+  color: #16a34a;
+}
+
+.btn-action.action-whatsapp:hover {
+  background-color: #dcfce7;
+  border-color: #22c55e;
+  color: #15803d;
+}
+
+.btn-whatsapp {
+  background-color: #25D366;
+  color: #ffffff;
+  border: 1px solid #1ebe5d;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-whatsapp:hover {
+  background-color: #20ba5a;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.35);
+  transform: translateY(-1px);
+}
+
 .table-footer {
   padding: 1rem 1.5rem;
   border-top: 1px solid var(--border-color);
