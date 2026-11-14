@@ -1145,13 +1145,17 @@ textarea.form-control {
   color: var(--text-primary);
 }
 
-.cust-id-badge {
+.cust-id-badge,
+.sr-no-badge {
   font-weight: 700;
   font-size: 0.8rem;
   color: var(--navy-primary);
   background-color: rgba(15, 41, 66, 0.06);
-  padding: 0.2rem 0.5rem;
+  padding: 0.2rem 0.55rem;
   border-radius: var(--radius-sm);
+  display: inline-block;
+  min-width: 2rem;
+  text-align: center;
 }
 
 .cust-name-cell {

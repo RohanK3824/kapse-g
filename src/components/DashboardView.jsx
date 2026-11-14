@@ -90,7 +90,7 @@ export default function DashboardView({
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>ID</th>
+                    <th style={{ width: '80px', textAlign: 'center' }}>Sr. No.</th>
                     <th>Customer Name</th>
                     <th>Mobile Number</th>
                     <th>Place / Address</th>
@@ -102,10 +102,10 @@ export default function DashboardView({
                   </tr>
                 </thead>
                 <tbody>
-                  {recentCustomers.map(c => (
+                  {recentCustomers.map((c, index) => (
                     <tr key={c.id}>
-                      <td>
-                        <span className="cust-id-badge">{c.id}</span>
+                      <td style={{ textAlign: 'center' }}>
+                        <span className="sr-no-badge">#{index + 1}</span>
                       </td>
                       <td>
                         <div className="cust-name-cell">

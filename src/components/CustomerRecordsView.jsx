@@ -159,8 +159,8 @@ export default function CustomerRecordsView({
             <table className="data-table">
               <thead>
                 <tr>
-                  <th className="sortable" onClick={() => handleSort('id')}>
-                    ID <i className={getSortIcon('id')}></i>
+                  <th style={{ width: '80px', textAlign: 'center' }}>
+                    Sr. No.
                   </th>
                   <th className="sortable" onClick={() => handleSort('name')}>
                     Customer Name <i className={getSortIcon('name')}></i>
@@ -184,10 +184,10 @@ export default function CustomerRecordsView({
                 </tr>
               </thead>
               <tbody>
-                {currentSlice.map(c => (
+                {currentSlice.map((c, index) => (
                   <tr key={c.id}>
-                    <td>
-                      <span className="cust-id-badge">{c.id}</span>
+                    <td style={{ textAlign: 'center' }}>
+                      <span className="sr-no-badge">#{startIndex + index + 1}</span>
                     </td>
                     <td>
                       <div className="cust-name-cell">
