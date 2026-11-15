@@ -761,8 +761,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Refresh all records and statistics
         await refreshAllData();
 
-        // Focus back to name field for rapid entry
-        elements.custName.focus();
+        // Switch immediately to dashboard
+        switchView('dashboard');
       } else {
         throw new Error(res.message || 'Failed to save customer');
       }

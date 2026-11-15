@@ -97,6 +97,7 @@ export default function App() {
       if (res.success) {
         addToast('Customer Registered', `Saved ${res.data.name} (${res.data.id}) successfully.`, 'success');
         await refreshData();
+        setCurrentView('dashboard');
       }
     } catch (err) {
       addToast('Registration Failed', err.message || 'Could not save customer record.', 'error');
@@ -176,6 +177,7 @@ export default function App() {
           {currentView === 'add-customer' && (
             <AddCustomerView
               onAddCustomer={handleAddCustomer}
+              onNavigate={setCurrentView}
             />
           )}
 

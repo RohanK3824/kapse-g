@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function AddCustomerView({ onAddCustomer }) {
+export default function AddCustomerView({ onAddCustomer, onNavigate }) {
   const getTodayDate = () => new Date().toISOString().split('T')[0];
 
   const initialForm = {
@@ -79,6 +79,9 @@ export default function AddCustomerView({ onAddCustomer }) {
       // Reset form on success
       setFormData({ ...initialForm, date: getTodayDate() });
       setErrors({});
+      if (onNavigate) {
+        onNavigate('dashboard');
+      }
     } catch {
       // Handled by parent toast
     } finally {
@@ -353,6 +356,11 @@ export default function AddCustomerView({ onAddCustomer }) {
 
             {/* Actions */}
             <div className="form-actions">
+              {onNavigate && (
+                <button type="button" className="btn btn-secondary" onClick={() => onNavigate('dashboard')}>
+                  <i className="fa-solid fa-arrow-left"></i> Dashboard
+                </button>
+              )}
               <button type="button" className="btn btn-secondary" onClick={handleReset}>
                 <i className="fa-solid fa-rotate-left"></i> Reset Form
               </button>
