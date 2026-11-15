@@ -12,6 +12,26 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
+function isCustomerEqual(a, b) {
+  if (!a || !b) return false;
+  const dateA = a.date instanceof Date ? a.date.toISOString().split('T')[0] : String(a.date || '').split('T')[0];
+  const dateB = b.date instanceof Date ? b.date.toISOString().split('T')[0] : String(b.date || '').split('T')[0];
+  const delivA = a.delivery_date instanceof Date ? a.delivery_date.toISOString().split('T')[0] : (a.delivery_date ? String(a.delivery_date).split('T')[0] : null);
+  const delivB = b.delivery_date instanceof Date ? b.delivery_date.toISOString().split('T')[0] : (b.delivery_date ? String(b.delivery_date).split('T')[0] : null);
+
+  return String(a.name || '').trim() === String(b.name || '').trim() &&
+         String(a.mobile || '').trim() === String(b.mobile || '').trim() &&
+         String(a.place || '').trim() === String(b.place || '').trim() &&
+         String(a.bill_book || '').trim() === String(b.bill_book || '').trim() &&
+         String(a.page_no || '').trim() === String(b.page_no || '').trim() &&
+         dateA === dateB &&
+         delivA === delivB &&
+         parseFloat(a.total_bill || 0) === parseFloat(b.total_bill || 0) &&
+         parseFloat(a.advance_paid || 0) === parseFloat(b.advance_paid || 0) &&
+         parseFloat(a.balance_due || 0) === parseFloat(b.balance_due || 0) &&
+         String(a.notes || '').trim() === String(b.notes || '').trim();
+}
+
 class AutoCloudSync {
   constructor() {
     this.cloudPool = null;
@@ -110,56 +130,48 @@ class AutoCloudSync {
       const [localDeleted] = await this.localPool.query('SELECT id FROM deleted_customers').catch(() => [[]]);
       const [cloudDeleted] = await this.cloudPool.query('SELECT id FROM deleted_customers').catch(() => [[]]);
 
-      const [localActive] = await this.localPool.query('SELECT id FROM customers').catch(() => [[]]);
-      const [cloudActive] = await this.cloudPool.query('SELECT id FROM customers').catch(() => [[]]);
-
-      const localActiveSet = new Set((localActive || []).map(r => r.id));
-      const cloudActiveSet = new Set((cloudActive || []).map(r => r.id));
       const localDelSet = new Set((localDeleted || []).map(r => r.id));
       const cloudDelSet = new Set((cloudDeleted || []).map(r => r.id));
 
-      const trueDeletedIds = new Set();
+      // Any customer ID marked as deleted on EITHER side is a permanent deletion!
+      const allDeletedIds = new Set([...localDelSet, ...cloudDelSet]);
 
-      for (const delId of localDelSet) {
-        if (!localActiveSet.has(delId)) {
-          trueDeletedIds.add(delId);
-        } else {
-          // If customer is actively in local customers table, clear obsolete delete flag
-          await this.localPool.query('DELETE FROM deleted_customers WHERE id = ?', [delId]).catch(() => {});
-        }
-      }
-
-      for (const delId of cloudDelSet) {
-        if (!cloudActiveSet.has(delId) && !localActiveSet.has(delId)) {
-          trueDeletedIds.add(delId);
-        } else if (localActiveSet.has(delId)) {
-          // Local has active customer, remove from cloud deleted list
-          await this.cloudPool.query('DELETE FROM deleted_customers WHERE id = ?', [delId]).catch(() => {});
-        }
-      }
-
-      // Ensure truly deleted IDs are purged from both sides
-      for (const delId of trueDeletedIds) {
+      // Purge all deleted customers from both Local and Cloud tables,
+      // and ensure the deletion tombstone is recorded on both sides
+      for (const delId of allDeletedIds) {
         await this.localPool.query('DELETE FROM customers WHERE id = ?', [delId]).catch(() => {});
         await this.cloudPool.query('DELETE FROM customers WHERE id = ?', [delId]).catch(() => {});
         await this.localPool.query('INSERT IGNORE INTO deleted_customers (id) VALUES (?)', [delId]).catch(() => {});
         await this.cloudPool.query('INSERT IGNORE INTO deleted_customers (id) VALUES (?)', [delId]).catch(() => {});
       }
 
-      // 2. Fetch Cloud customers (excluding truly deleted ones)
+      // 2. Fetch current active records from both sides
       const [cloudRows] = await this.cloudPool.query('SELECT * FROM customers');
-      const activeCloudRows = cloudRows.filter(c => !trueDeletedIds.has(c.id));
+      const [localRows] = await this.localPool.query('SELECT * FROM customers');
 
-      // 3. Insert any new/updated customers from Cloud into Laptop Local MySQL
+      const activeCloudRows = cloudRows.filter(c => !allDeletedIds.has(c.id));
+      const activeLocalRows = localRows.filter(l => !allDeletedIds.has(l.id));
+
+      const localMap = new Map(activeLocalRows.map(r => [r.id, r]));
+      const cloudMap = new Map(activeCloudRows.map(r => [r.id, r]));
+
+      // 3. Pull new or updated records from Cloud to Laptop Local MySQL
       let newToLocalCount = 0;
       for (const c of activeCloudRows) {
+        const localRec = localMap.get(c.id);
+
+        // Skip if local already has identical record
+        if (localRec && isCustomerEqual(localRec, c)) {
+          continue;
+        }
+
         const formattedDate = c.date instanceof Date ? c.date.toISOString().split('T')[0] : c.date;
         const formattedDeliveryDate = c.delivery_date instanceof Date ? c.delivery_date.toISOString().split('T')[0] : (c.delivery_date || null);
         const totalBill = parseFloat(c.total_bill || 0) || 0;
         const advancePaid = parseFloat(c.advance_paid || 0) || 0;
         const balanceDue = c.balance_due !== undefined ? (parseFloat(c.balance_due) || 0) : Math.max(0, totalBill - advancePaid);
 
-        const [res] = await this.localPool.query(
+        await this.localPool.query(
           `INSERT INTO customers (id, name, mobile, place, bill_book, page_no, date, notes, total_bill, advance_paid, balance_due, delivery_date)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON DUPLICATE KEY UPDATE
@@ -177,26 +189,28 @@ class AutoCloudSync {
           [c.id, c.name, c.mobile, c.place, c.bill_book, c.page_no, formattedDate, c.notes, totalBill, advancePaid, balanceDue, formattedDeliveryDate]
         );
 
-        if (res.affectedRows === 1) {
-          newToLocalCount++;
-          console.log(`[AutoCloudSync] 📲 New Mobile Customer Pulled to Laptop MySQL: [${c.id}] ${c.name} (${c.place})`);
-        }
-        await this.localPool.query('DELETE FROM deleted_customers WHERE id = ?', [c.id]).catch(() => {});
+        newToLocalCount++;
+        const actionLabel = localRec ? 'Updated' : 'New';
+        console.log(`[AutoCloudSync] 📲 ${actionLabel} Mobile Customer Pulled to Laptop MySQL: [${c.id}] ${c.name} (${c.place})`);
       }
 
-      // 4. Fetch Local customers (excluding truly deleted ones) to push to cloud
-      const [localRows] = await this.localPool.query('SELECT * FROM customers');
-      const activeLocalRows = localRows.filter(l => !trueDeletedIds.has(l.id));
-
+      // 4. Push new or updated records from Laptop to Cloud
       let newToCloudCount = 0;
       for (const l of activeLocalRows) {
+        const cloudRec = cloudMap.get(l.id);
+
+        // Skip if cloud already has identical record
+        if (cloudRec && isCustomerEqual(cloudRec, l)) {
+          continue;
+        }
+
         const formattedDate = l.date instanceof Date ? l.date.toISOString().split('T')[0] : l.date;
         const formattedDeliveryDate = l.delivery_date instanceof Date ? l.delivery_date.toISOString().split('T')[0] : (l.delivery_date || null);
         const totalBill = parseFloat(l.total_bill || 0) || 0;
         const advancePaid = parseFloat(l.advance_paid || 0) || 0;
         const balanceDue = l.balance_due !== undefined ? (parseFloat(l.balance_due) || 0) : Math.max(0, totalBill - advancePaid);
 
-        const [res] = await this.cloudPool.query(
+        await this.cloudPool.query(
           `INSERT INTO customers (id, name, mobile, place, bill_book, page_no, date, notes, total_bill, advance_paid, balance_due, delivery_date)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON DUPLICATE KEY UPDATE
@@ -214,15 +228,13 @@ class AutoCloudSync {
           [l.id, l.name, l.mobile, l.place, l.bill_book, l.page_no, formattedDate, l.notes, totalBill, advancePaid, balanceDue, formattedDeliveryDate]
         );
 
-        if (res.affectedRows === 1) {
-          newToCloudCount++;
-          console.log(`[AutoCloudSync] 💻 Local Laptop Customer Pushed to Cloud: [${l.id}] ${l.name} (${l.place})`);
-        }
-        await this.cloudPool.query('DELETE FROM deleted_customers WHERE id = ?', [l.id]).catch(() => {});
+        newToCloudCount++;
+        const actionLabel = cloudRec ? 'Updated' : 'New';
+        console.log(`[AutoCloudSync] 💻 ${actionLabel} Local Laptop Customer Pushed to Cloud: [${l.id}] ${l.name} (${l.place})`);
       }
 
       if (newToLocalCount > 0 || newToCloudCount > 0) {
-        console.log(`[AutoCloudSync] ✅ Sync Completed: ${newToLocalCount} mobile record(s) saved to laptop MySQL, ${newToCloudCount} laptop record(s) sent to cloud.`);
+        console.log(`[AutoCloudSync] ✅ Sync Completed: ${newToLocalCount} pulled to laptop, ${newToCloudCount} pushed to cloud.`);
       }
     } catch (err) {
       if (trigger !== 'interval') {

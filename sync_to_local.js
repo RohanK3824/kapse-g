@@ -40,10 +40,28 @@ async function syncToLocal() {
     console.log('2. Connecting to Laptop Local MySQL (tailor_shop_db)...');
     localConn = await mysql.createConnection(LOCAL_CONFIG);
 
+    // Fetch deleted customers from both sides
+    const [localDeleted] = await localConn.query('SELECT id FROM deleted_customers').catch(() => [[]]);
+    const [cloudDeleted] = await cloudConn.query('SELECT id FROM deleted_customers').catch(() => [[]]);
+    const allDeletedIds = new Set([
+      ...(localDeleted || []).map(r => r.id),
+      ...(cloudDeleted || []).map(r => r.id)
+    ]);
+
+    // Purge deleted records from both tables
+    for (const delId of allDeletedIds) {
+      await localConn.query('DELETE FROM customers WHERE id = ?', [delId]).catch(() => {});
+      await cloudConn.query('DELETE FROM customers WHERE id = ?', [delId]).catch(() => {});
+      await localConn.query('INSERT IGNORE INTO deleted_customers (id) VALUES (?)', [delId]).catch(() => {});
+      await cloudConn.query('INSERT IGNORE INTO deleted_customers (id) VALUES (?)', [delId]).catch(() => {});
+    }
+
+    const activeCloudRows = cloudRows.filter(c => !allDeletedIds.has(c.id));
+
     let inserted = 0;
     let updated = 0;
 
-    for (const c of cloudRows) {
+    for (const c of activeCloudRows) {
       const formattedDate = c.date instanceof Date ? c.date.toISOString().split('T')[0] : c.date;
       const formattedDeliveryDate = c.delivery_date instanceof Date ? c.delivery_date.toISOString().split('T')[0] : (c.delivery_date || null);
       const totalBill = parseFloat(c.total_bill || 0) || 0;
