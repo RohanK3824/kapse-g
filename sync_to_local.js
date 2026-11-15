@@ -45,10 +45,14 @@ async function syncToLocal() {
 
     for (const c of cloudRows) {
       const formattedDate = c.date instanceof Date ? c.date.toISOString().split('T')[0] : c.date;
+      const formattedDeliveryDate = c.delivery_date instanceof Date ? c.delivery_date.toISOString().split('T')[0] : (c.delivery_date || null);
+      const totalBill = parseFloat(c.total_bill || 0) || 0;
+      const advancePaid = parseFloat(c.advance_paid || 0) || 0;
+      const balanceDue = c.balance_due !== undefined ? (parseFloat(c.balance_due) || 0) : Math.max(0, totalBill - advancePaid);
 
       const [res] = await localConn.query(
-        `INSERT INTO customers (id, name, mobile, place, bill_book, page_no, date, notes) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?) 
+        `INSERT INTO customers (id, name, mobile, place, bill_book, page_no, date, notes, total_bill, advance_paid, balance_due, delivery_date) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
          ON DUPLICATE KEY UPDATE 
            name = VALUES(name),
            mobile = VALUES(mobile),
@@ -56,8 +60,12 @@ async function syncToLocal() {
            bill_book = VALUES(bill_book),
            page_no = VALUES(page_no),
            date = VALUES(date),
-           notes = VALUES(notes)`,
-        [c.id, c.name, c.mobile, c.place, c.bill_book, c.page_no, formattedDate, c.notes]
+           notes = VALUES(notes),
+           total_bill = VALUES(total_bill),
+           advance_paid = VALUES(advance_paid),
+           balance_due = VALUES(balance_due),
+           delivery_date = VALUES(delivery_date)`,
+        [c.id, c.name, c.mobile, c.place, c.bill_book, c.page_no, formattedDate, c.notes, totalBill, advancePaid, balanceDue, formattedDeliveryDate]
       );
 
       if (res.affectedRows === 1) {

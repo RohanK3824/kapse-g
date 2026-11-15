@@ -14,6 +14,10 @@
     "db:backup": "node manage_db.js backup",
     "db:optimize": "node manage_db.js optimize",
     "db:pull": "node sync_to_local.js",
+    "sync:status": "node services/statusDaemon.js",
+    "sync:start": "wscript.exe start_sync_silent.vbs",
+    "sync:stop": "node services/stopDaemon.js",
+    "sync:daemon": "node services/syncDaemon.js",
     "seed": "node seed.js"
   },
   "keywords": [],
